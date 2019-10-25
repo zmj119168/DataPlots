@@ -25,8 +25,7 @@ function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:
   m0 = A == 0 ? 0.511e-3 : 0.9382
 
   logene = log.(ene)
-  dloge = logene[2] - logene[1]
-  itpspec = interpolate((logene[1]:dloge:last(logene),), log.(flux), Gridded(Linear()))
+  itpspec = interpolate((range(logene[1],last(logene),length=length(logene)),), log.(flux), Gridded(Linear()))
   spec = extrapolate(itpspec, Line())
 
   (ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene))
