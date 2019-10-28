@@ -20,15 +20,25 @@ Doing solar modulation for specified spectrum; ene in unit [GeV]; flux is the nu
 * `A`,`Z`:  the A and Z of the particle
 * `phi`:    modulation potential [unit: GV]
 """
-function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real}; A::Int = 1, Z::Int = 1, phi::Real = 0)
+function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real}; A::Int = 1, Z::Int = 1, new::Int = 0, label::String,phi::Real = 0)
   phi_ = phi * abs(Z) / A
   m0 = A == 0 ? 0.511e-3 : 0.9382
 
   logene = log.(ene)
+ # dloge = logene[2] - logene[1]
+ # itpspec = interpolate((logene[1]:dloge:last(logene),), log.(flux), Gridded(Linear()))
   itpspec = interpolate((range(logene[1],last(logene),length=length(logene)),), log.(flux), Gridded(Linear()))
   spec = extrapolate(itpspec, Line())
 
-  (ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene))
+ # (ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene))
+  if new==1
+    data = get_data("proton.dat"; norm=1e-4)
+    plot_data(data["AMS2015(2011/05-2013/11)"])
+    plot!(xaxis=:log, yaxis=:log)
+  end
+  moduleflux=map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene)
+  proton = moduleflux .* (ene .^ 2.7)
+  plot!(ene, proton; label = label*",phi="*string(phi))
 end
 
 function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
