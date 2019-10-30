@@ -30,7 +30,7 @@ function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:
   itpspec = interpolate((range(logene[1],last(logene),length=length(logene)),), log.(flux), Gridded(Linear()))
   spec = extrapolate(itpspec, Line())
 
-  ene_flux=(ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene)) 
+  (ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene)) 
 end
 
 """
@@ -55,7 +55,6 @@ function dict_modulation(spectra::Dict{String,Array{Float64,1}},header::FITSHead
   end
   spec_new
 end
-
 
 function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
   basedir = dirname(@__FILE__)
