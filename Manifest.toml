@@ -74,6 +74,14 @@ git-tree-sha1 = "6624bd0cdd03aa82df34d3eac56ab77ff696472e"
 uuid = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 version = "0.14.0"
 
+[[FITSUtils]]
+deps = ["FITSIO", "Printf", "Test"]
+git-tree-sha1 = "887c324928a01183182f4535f0471dcaf8e065f5"
+repo-rev = "master"
+repo-url = "https://github.com/linsujie/FITSUtils.git"
+uuid = "e3c3ba48-db7a-11e9-0297-7f801741554f"
+version = "0.1.0"
+
 [[FixedPointNumbers]]
 git-tree-sha1 = "d14a6fa5890ea3a7e5dcab6811114f132fec2b4b"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
