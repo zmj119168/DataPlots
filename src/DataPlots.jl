@@ -129,7 +129,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   if !whole_rigidity && !whole_ekin
     throw("The specified data should be all in rigidity or all in Ekin")
   end
-  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(ylabel,"e"=>""))
+  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(replace(ylabel,"e"=>""),"E"=>"R"))
 
   mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
   for i in 1:length(mod_spectra)
@@ -219,6 +219,6 @@ end
 function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
   label[1]*=",phi="*string(phi)
   plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e4,
-                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
+                  spectra, label; phi=phi, data=data, datafile="pbar.dat", yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 end # module
