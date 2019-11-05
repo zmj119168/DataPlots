@@ -119,7 +119,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
     end
 
     for k in data
-      plot_data!(pdata[k],label= k)
+      plot_data!(pdata[k], k)
     end
 
     whole_rigidity = mapreduce(k->occursin("rigidity", k), &, data)
