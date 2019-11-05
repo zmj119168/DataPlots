@@ -93,11 +93,11 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
   result
 end
 
-function plot_data(data::Array{T,2} where { T <: Real },label)
+function plot_data(data::Array{T,2} where { T <: Real },label::String)
   plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label)
 end
 
-function plot_data!(data::Array{T,2} where { T <: Real },label)
+function plot_data!(data::Array{T,2} where { T <: Real },label::String)
   plot!(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label)
 end
 
