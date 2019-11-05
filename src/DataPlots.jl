@@ -129,7 +129,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   if !whole_rigidity && !whole_ekin
     throw("The specified data should be all in rigidity or all in Ekin")
   end
-  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=ylabel)
+  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel:replace(ylabel,"e"=>""))
 
   mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
   for i in 1:length(mod_spectra)
