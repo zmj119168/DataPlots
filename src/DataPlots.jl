@@ -6,9 +6,11 @@ export plot_BC
 export plot_proton
 export plot_pbar
 export modulation
+export +
 
 using Plots
 using Interpolations
+using FITSUtils
 using Printf
 using FITSIO
 
@@ -34,30 +36,41 @@ function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:
 end
 
 """
-    dict_modulation(spectra::Dict{String,Array{Float64,1}},header::FITSHeader, phi::Real = 0)
+    modulation(particle::Particle, phi::Real)
 
-Doing solar modulation for a spectra dict of many particles produced by FITSUtils
+Doing solar modulation for specified spectrum inside the Particle structure
 
 # Arguments
-* `header`: the header for GALPROP output.
 * `phi`:    modulation potential [unit: GV]
 """
-function dict_modulation(spectra::Dict{String,Array{Float64,1}},header::FITSHeader, phi::Real = 0)
-  ene=spectra["eaxis"]
-  spec_new=copy(spectra)
-  for i=1:header["NAXIS4"]
-    index = @sprintf "%03d" i
-    iname=header["NAME$index"]
-    iZ=header["NUCZ$index"]
-    iA=header["NUCA$index"]
-    flux=spectra[iname]
-    spec_new[iname]=modulation(ene, flux; A=iA, Z=iZ, phi=phi)[2]
+function modulation(particle::Particle, phi::Real)
+  particle.Ekin, particle.dNdE = modulation(particle.Ekin, particle.dNdE; A=particle.A, Z=particle.Z, phi=phi)
+  count_R(particle)
+end
+
+"""
+    dict_modulation(spec::Dict{String,Particle}, phi::Real = 0)
+
+Doing solar modulation for a spectra dict of many Particles produced by FITSUtils
+
+# Arguments
+* `phi`:    modulation potential [unit: GV]
+"""
+function dict_modulation(spec::Dict{String,Particle}, phi::Real = 0)
+  phi == 0 && return spec
+
+  mod_spec = Dict{String,Particle}()
+  for k in keys(spec)
+    mod_spec[k] = modulation(copy(spec[k]), phi)
   end
-  spec_new
+
+  return mod_spec
 end
 
 function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
   basedir = dirname(@__FILE__)
+  @assert isfile("$basedir/$fname")
+
   result = Dict{String, Array{Float64,2}}()
   key = ""
 
@@ -81,82 +94,128 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
 end
 
 function plot_data(data::Array{T,2} where { T <: Real })
-  plot(data[:,1], data[:,2];yerror=data[:,3], linewidth=0, marker=:dot, label="")
+  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label="")
+end
+
+function plot_data!(data::Array{T,2} where { T <: Real })
+  plot!(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label="")
+end
+
+function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
+                         phi::Real = 0,
+                         data::Array{String,1} = [],
+                         datafile::String = "", index::Real = 0, norm::Real = 1,
+                         xscale::Symbol = :log10, yscale::Symbol = :none,
+                         ylabel::String = "")
+
+  whole_ekin = true
+  whole_rigidity = false
+  if length(data) != 0
+    pdata = get_data(datafile; index=index, norm=norm)
+
+    if !mapreduce(k->haskey(pdata, k), &, data)
+      data_keys = keys(pdata)
+      throw("The specified data not found, note that the available data in file $datafile are:\n$data_keys")
+    end
+
+    for k in data
+      plot_data!(pdata[k])
+    end
+
+    whole_rigidity = mapreduce(k->occursin("rigidity", k), &, data)
+    whole_ekin = mapreduce(k->!occursin("rigidity", k), &, data)
+  end
+
+  if !whole_rigidity && !whole_ekin
+    throw("The specified data should be all in rigidity or all in Ekin")
+  end
+  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=ylabel)
+
+  mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
+  for i in 1:length(mod_spectra)
+    ptc = plot_func(mod_spectra[i])
+    ene, flux = whole_ekin ? (ptc.Ekin, ptc.dNdE) : (ptc.R, ptc.dNdR)
+    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "")
+  end
+  plot!()
+end
+
+function get_func(a::Particle)
+  etpE = extrapolate(interpolate((log.(a.Ekin),), log.(a.dNdE), Gridded(Linear())), Line())
+  etpR = extrapolate(interpolate((log.(a.R),), log.(a.dNdR), Gridded(Linear())), Line())
+
+  (x->exp(etpE(log(x))), x->exp(etpR(log(x))))
+end
+
+function op_particle(a::Particle, b::Particle, op)
+  c = copy(a)
+  efunc, rfunc = get_func(b)
+
+  c.dNdE = @. op(c.dNdE, efunc(c.Ekin))
+  c.dNdR = @. op(c.dNdR, rfunc(c.R))
+  c
+end
+
+Base.:+(a::Particle, b::Particle) = op_particle(a, b, +)
+Base.:-(a::Particle, b::Particle) = op_particle(a, b, -)
+Base.:*(a::Particle, b::Particle) = op_particle(a, b, *)
+Base.:/(a::Particle, b::Particle) = op_particle(a, b, /)
+
+function Base.:*(a::Particle, n::Real)
+  a.dNdE .*= n
+  a.dNdR .*= n
+  a
+end
+
+function rescale(a::Particle, index::Real)
+  a.dNdE = @. a.dNdE * a.Ekin^index
+  a.dNdR = @. a.dNdR * a.R^index
+  a
 end
 
 """
-    plot_BC(spectra::Array{Dict{String,Array{Float64,1}},1},header::FITSHeader, label::String;
-            add::Real = 0, phi::Real = 0)  
+    plot_BC(spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
+            phi::Real = 0, data::Array{String,1})  
 
     Ploting the B/C ratio of given spectra in comparison with the data
 
 # Arguments
-* `header`: the header for GALPROP output.
-* `add`:    whether to add this plot together;default to start a new plot_BC
-* `phi`:    modulation potential [unit: GV]
+* `phi`:     modulation potential [unit: GV]
+* `data`:    The dataset to plot
 """
-function plot_BC(spectra::Array{Dict{String,Array{Float64,1}},1},header::FITSHeader, label::String; add::Real = 0, phi::Real = 0)  
-  if add==0
-    data = get_data("bcratio.dat")
-    plot_data(data["AMS02(2011/05-2016/05)"])
-    plot!(xaxis=:log, xlabel="Ekin[GeV]")
-  end
-  if phi!=0
-    spectra[1]=dict_modulation(spectra[1],header,phi)
-  end
-  bc = map(spec->(spec["Boron_10"] + spec["Boron_11"]) ./ (spec["Carbon_12"] + spec["Carbon_13"]), spectra)
-
-  plot!(spectra[1]["eaxis"], bc; label = label*",phi="*string(phi))
+function plot_BC(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02(2011/05-2016/05)"])
+  plot_comparison(spec-> (spec["Boron_10"] + spec["Boron_11"]) / (spec["Carbon_12"] + spec["Carbon_13"]),
+                  spectra, label; phi=phi, data=data, datafile="bcratio.dat", ylabel="B/C")
 end
 
 """
-    plot_proton(spectra::Array{Dict{String,Array{Float64,1}},1},header::FITSHeader, label::String;
-                add::Real = 0, phi::Real = 0)  
+    plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
+            phi::Real = 0, data::Array{String,1})  
 
-    Ploting the proton ratio of given spectra in comparison with the data
+    Ploting the proton flux of given spectra in comparison with the data
 
 # Arguments
-* `header`: the header for GALPROP output.
-* `add`:    whether to add this plot together;default to start a new plot_BC
-* `phi`:    modulation potential [unit: GV]
+* `phi`:     modulation potential [unit: GV]
+* `data`:    The dataset to plot
 """
-function plot_proton(spectra::Array{Dict{String,Array{Float64,1}},1},header::FITSHeader, label::String; add::Real = 0, phi::Real = 0)
-  if add==0  
-    data = get_data("proton.dat"; norm=1e-4)
-    plot_data(data["AMS2015(2011/05-2013/11)"])
-    plot!(xaxis=:log, yaxis=:log)
-  end
-  if phi!=0
-    spectra[1]=dict_modulation(spectra[1],header,phi)
-  end
-  proton = map(spec-> (spec["Hydrogen_1"] + spec["Hydrogen_2"]) .* (spec["eaxis"] .^ 2.7), spectra)
-  plot!(spectra[1]["eaxis"], proton; label = label*",phi="*string(phi))
+function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
+  plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"], 2.7) * 1e4,
+                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE\$")
 end
 
-"""
-    plot_pbar(spectra::Array{Dict{String,Array{Float64,1}},1},header::FITSHeader, label::String;
-              add::Real = 0, phi::Real = 0)  
 
-    Ploting the proton ratio of given spectra in comparison with the data
+"""
+    plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
+            phi::Real = 0, data::Array{String,1})  
+
+    Ploting the antiproton flux of given spectra in comparison with the data
 
 # Arguments
-* `header`: the header for GALPROP output.
-* `add`:    whether to add this plot together;default to start a new plot_BC
-* `phi`:    modulation potential [unit: GV]
+* `phi`:     modulation potential [unit: GV]
+* `data`:    The dataset to plot
 """
-function plot_pbar(spectra::Array{Dict{String,Array{Float64,1}},1},header::FITSHeader, label::String; add::Real = 0, phi::Real = 0)
-  if add==0 
-    data = get_data("pbar.dat"; index=-2, norm=1e-4)
-    plot_data(data["AMS2016nonformal(0000/00)"])
-    plot!(xaxis=:log, yaxis=:log)
-  end
-  if phi!=0
-    spectra[1]=dict_modulation(spectra[1],header,phi)
-  end
-  #pbar = map(spec-> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"]) .* (spec["eaxis"] .^ 2), spectra)
-  pbar = map(spec-> max.(spec["DM_antiprotons"] .* (spec["eaxis"] .^ 2), 1e-7), spectra)
-  print(pbar)
-  plot!(spectra[1]["eaxis"], pbar; label = label*",phi="*string(phi))
+function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
+  plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e4,
+                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE\$")
 end
-
 end # module
