@@ -93,12 +93,12 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
   result
 end
 
-function plot_data(data::Array{T,2} where { T <: Real })
-  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label="")
+function plot_data(data::Array{T,2} where { T <: Real },label)
+  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label)
 end
 
-function plot_data!(data::Array{T,2} where { T <: Real })
-  plot!(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label="")
+function plot_data!(data::Array{T,2} where { T <: Real },label)
+  plot!(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label)
 end
 
 function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
@@ -119,7 +119,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
     end
 
     for k in data
-      plot_data!(pdata[k])
+      plot_data!(pdata[k],label= k)
     end
 
     whole_rigidity = mapreduce(k->occursin("rigidity", k), &, data)
@@ -184,6 +184,7 @@ end
 * `data`:    The dataset to plot
 """
 function plot_BC(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02(2011/05-2016/05)"])
+  label[1]*=",phi="*string(phi)
   plot_comparison(spec-> (spec["Boron_10"] + spec["Boron_11"]) / (spec["Carbon_12"] + spec["Carbon_13"]),
                   spectra, label; phi=phi, data=data, datafile="bcratio.dat", ylabel="B/C")
 end
@@ -199,6 +200,7 @@ end
 * `data`:    The dataset to plot
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
+  label[1]*=",phi="*string(phi)
   plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"], 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
@@ -215,6 +217,7 @@ end
 * `data`:    The dataset to plot
 """
 function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
+  label[1]*=",phi="*string(phi)
   plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
