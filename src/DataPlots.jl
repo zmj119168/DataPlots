@@ -200,7 +200,7 @@ end
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
   plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"], 2.7) * 1e4,
-                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE\$")
+                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}*(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
 
@@ -216,6 +216,6 @@ end
 """
 function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
   plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e4,
-                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE\$")
+                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}*(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 end # module
