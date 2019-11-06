@@ -203,6 +203,35 @@ function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{Strin
                   spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
+function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2017heliumrigidity(0000/00)"])
+  label[1]*=",phi="*string(phi)
+  _func=spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4
+  if data==["he"]
+    data=["AMS2017heliumrigidity(0000/00)"]
+  elseif data==["c"]
+    data=["AMS2017carbonrigidity(0000/00)"]
+    _func=spec -> rescale(spec["Carbon_12"] + spec["Carbon_13"], 2.7) * 1e4
+  elseif data==["o"]
+    data=["AMS2017oxygenrigidity(0000/00)"]
+    _func=spec -> rescale(spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"], 2.7) * 1e4
+  end
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="primary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
+
+function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2017lithiumrigidity(0000/00)"])
+  label[1]*=",phi="*string(phi)
+  _func=spec -> rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4
+  if data==["li"]
+    data=["AMS2017lithiumrigidity(0000/00)"]
+  elseif data==["be"]
+    data=["AMS2017berylliumrigidity(0000/00)"]
+    _func=spec -> rescale(spec["Beryllium_7"] + spec["Beryllium_9"] + spec["Beryllium_10"], 2.7) * 1e4
+  elseif data==["b"]
+    data=["AMS2017boronrigidity(0000/00)"]
+    _func=spec -> rescale(spec["Boron_10"] + spec["Boron_11"], 2.7) * 1e4
+  end
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="secondary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
 
 """
     plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
