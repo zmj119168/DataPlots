@@ -204,7 +204,6 @@ function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{Strin
 end
 
 function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2017heliumrigidity(0000/00)"])
-  label[1]*=",phi="*string(phi)
   _func=spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4
   if data==["he"]
     data=["AMS2017heliumrigidity(0000/00)"]
@@ -219,7 +218,6 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
 end
 
 function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2017lithiumrigidity(0000/00)"])
-  label[1]*=",phi="*string(phi)
   _func=spec -> rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4
   if data==["li"]
     data=["AMS2017lithiumrigidity(0000/00)"]
