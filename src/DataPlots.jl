@@ -213,6 +213,9 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
   elseif data==["o"]
     data=["AMS2017oxygenrigidity(0000/00)"]
     _func=spec -> rescale(spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"], 2.7) * 1e4
+  elseif data==["n"]
+    data=["AMS2018nitrogenrigidity(0000/00)"]
+    _func=spec -> rescale(spec["Nitrogen_14"] + spec["Nitrogen_15"], 2.7) * 1e4
   end
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="primary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
@@ -230,6 +233,17 @@ function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{St
   end
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="secondary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
+
+#function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2019electron(0000/00)"])
+#  _func=spec -> rescale(spec[""] + spec[""], 3.0) * 1e4
+#  if data==["e-"]
+#    data=["AMS2019electron(0000/00)"]
+#  elseif data==["e+"]
+#    data=["AMS2019positron(0000/00)"]
+#    _func=spec -> rescale(spec[""] + spec[""], 3.0) * 1e4
+#  end
+#  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="e+e-.dat", index=-3,yscale=:log, ylabel="\$E^{3}dN/dE [GeV^{3}(m^{2}*sr*s*GeV)^{-1}]\$")
+#end
 
 """
     plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
