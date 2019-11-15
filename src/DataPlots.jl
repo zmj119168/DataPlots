@@ -198,12 +198,12 @@ end
 * `phi`:     modulation potential [unit: GV]
 * `data`:    The dataset to plot
 """
-function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2015(2011/05-2013/11)"])
+function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2015(2011/05-2013/11)"])
   plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"], 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
-function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2017heliumrigidity(0000/00)"])
+function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017heliumrigidity(0000/00)"])
   _func=spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4
   if data==["he"]
     data=["AMS2017heliumrigidity(0000/00)"]
@@ -220,7 +220,7 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="primary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
-function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2017lithiumrigidity(0000/00)"])
+function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017lithiumrigidity(0000/00)"])
   _func=spec -> rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4
   if data==["li"]
     data=["AMS2017lithiumrigidity(0000/00)"]
@@ -234,7 +234,7 @@ function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{St
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="secondary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
-#function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2019electron(0000/00)"])
+#function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(0000/00)"])
 #  _func=spec -> rescale(spec[""] + spec[""], 3.0) * 1e4
 #  if data==["e-"]
 #    data=["AMS2019electron(0000/00)"]
@@ -255,9 +255,16 @@ end
 * `phi`:     modulation potential [unit: GV]
 * `data`:    The dataset to plot
 """
-function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data=["AMS2016nonformal(0000/00)"])
+function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016nonformal(0000/00)"])
   plot_comparison(spec -> rescale(spec["secondary_antiprotons"] + spec["tertiary_antiprotons"], 2.0) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
+ #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
+ #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
+
+function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016rigidity(0000/00)"])
+  plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"])/(spec["Hydrogen_1"] + spec["Hydrogen_2"]) ,
+                  spectra, label; phi=phi, data=data, datafile="pbarp.dat", yscale=:log, ylabel="\$ \bar{p}/p \$")
  #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
  #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
