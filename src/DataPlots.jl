@@ -7,12 +7,14 @@ export plot_proton
 export plot_pbar
 export modulation
 export +
+export /
 
 using Plots
 using Interpolations
 using FITSUtils
 using Printf
 using FITSIO
+using LsqFit
 
 """
     modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real};
@@ -199,7 +201,7 @@ end
 * `data`:    The dataset to plot
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2015(2011/05-2013/11)"])
-  plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"], 2.7) * 1e4,
+  plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"] +spec["secondary_protons"], 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
@@ -263,9 +265,36 @@ function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,
 end
 
 function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016rigidity(0000/00)"])
-  plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"])/(spec["Hydrogen_1"] + spec["Hydrogen_2"]) ,
+  plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"])/(spec["Hydrogen_1"] + spec["Hydrogen_2"]+spec["secondary_protons"]) ,
                   spectra, label; phi=phi, data=data, datafile="pbarp.dat", yscale=:log, ylabel="\$ \bar{p}/p \$")
  #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
  #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
+
+function plot_index(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real})
+  logene = log.(ene)
+  logflux = log.(flux)
+  point=fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(7.09)<logene[i]<log(12.0)])
+  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(12.0)<logene[i]<log(16.6)]))
+  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(16.6)<logene[i]<log(22.8)]))
+  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(22.8)<logene[i]<log(41.9)]))
+  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(41.9)<logene[i]<log(60.3)]))
+  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(60.3)<logene[i]<log(192)]))
+  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(192)<logene[i]<log(3300)]))
+  plot!(exp.([pot[1] for pot in point]),[pot[2] for pot in point]; yerror=[pot[3] for pot in point], linewidth=0, marker=:dot,xscale=:log10)
+end
+
+function fitting(xydata::Array{Tuple{Float64,Float64},1})
+  @. model(x, p) = p[1]*x+p[2]
+  p0 = [-2.6, 1e1]
+  fit=curve_fit(model, [xy[1] for xy in xydata], [xy[2] for xy in xydata], p0)  
+  gamma=coef(fit)[1]
+  err=stderror(fit)[1]
+  min=minimum(abs.(fit.resid))
+  for i=1:length(fit.resid)
+    if min==abs.(fit.resid)[i]
+      return ([xy[1] for xy in xydata][i],gamma,err)
+    end
+  end
 end
 end # module
