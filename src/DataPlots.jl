@@ -109,7 +109,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
                          datafile::String = "", index::Real = 0, norm::Real = 1,
                          xscale::Symbol = :log10, yscale::Symbol = :none,
                          ylabel::String = "")
-  label[1]*=",phi="*string(phi)
+  label.*=",phi="*string(phi)
   whole_ekin = true
   whole_rigidity = false
   if length(data) != 0
