@@ -27,7 +27,7 @@ Doing solar modulation for specified spectrum; ene in unit [GeV]; flux is the nu
 * `phi`:    modulation potential [unit: GV]
 """
 function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real}; A::Int = 1, Z::Int = 1,phi::Real = 0)
-  phi_ = phi * abs(Z) / A
+  phi_ = phi * abs(Z) / max(A,1)
   m0 = A == 0 ? 0.511e-3 : 0.9382
 
   logene = log.(ene)
@@ -201,8 +201,9 @@ end
 * `data`:    The dataset to plot
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2015(2011/05-2013/11)"])
+  ind= (data==["AMS2015(2011/05-2013/11)"] ? 0 : -2.7)
   plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"] +spec["secondary_protons"], 2.7) * 1e4,
-                  spectra, label; phi=phi, data=data, datafile="proton.dat", yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
+                  spectra, label; phi=phi, data=data, datafile="proton.dat", index=ind,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
 function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017heliumrigidity(0000/00)"])
@@ -236,16 +237,24 @@ function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{St
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="secondary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
-#function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(0000/00)"])
-#  _func=spec -> rescale(spec[""] + spec[""], 3.0) * 1e4
-#  if data==["e-"]
-#    data=["AMS2019electron(0000/00)"]
-#  elseif data==["e+"]
-#    data=["AMS2019positron(0000/00)"]
-#    _func=spec -> rescale(spec[""] + spec[""], 3.0) * 1e4
-#  end
-#  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="e+e-.dat", index=-3,yscale=:log, ylabel="\$E^{3}dN/dE [GeV^{3}(m^{2}*sr*s*GeV)^{-1}]\$")
-#end
+function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(0000/00)"])
+  _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"], 3.0) * 1e4
+  index=-3
+  if data==["e-"]
+    data=["AMS2019electron(0000/00)"]
+  elseif data==["e+"]
+    data=["AMS2019positron(0000/00)"]
+    _func=spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4
+  elseif data==["eall"]
+    data=["AMS2019combined(0000/00)"]
+    _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4
+  elseif data==["fp"]
+    data=["AMS2019positronfraction(0000/00)"]
+    _func=spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])
+    index=0
+  end
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="e+e-.dat", index=index,yscale=:log, ylabel="\$E^{3}dN/dE [GeV^{3}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
 
 """
     plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
