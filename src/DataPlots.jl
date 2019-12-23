@@ -131,7 +131,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   if !whole_rigidity && !whole_ekin
     throw("The specified data should be all in rigidity or all in Ekin")
   end
-  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(replace(ylabel,"e"=>""),"E"=>"R"))
+  plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(replace(ylabel,"Ge"=>"G"),"E"=>"R"))
 
   mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
   for i in 1:length(mod_spectra)
@@ -201,7 +201,7 @@ end
 * `data`:    The dataset to plot
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2015(2011/05-2013/11)"])
-  ind= (data==["AMS2015(2011/05-2013/11)"] ? 0 : -2.7)
+  ind= (data==["AMS2015(2011/05-2013/11)"] || data==["AMS2015rigidity(2011/05-2013/11)"]) ? 0 : -2.7
   plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"] +spec["secondary_protons"], 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", index=ind,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
@@ -238,7 +238,8 @@ function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{St
 end
 
 function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(0000/00)"])
-  _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"], 3.0) * 1e4
+#  _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"], 3.0) * 1e4
+  _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4
   index=-3
   if data==["e-"]
     data=["AMS2019electron(0000/00)"]
@@ -247,13 +248,30 @@ function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} 
     _func=spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4
   elseif data==["eall"]
     data=["AMS2019combined(0000/00)"]
-    _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4
+    _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4
   elseif data==["fp"]
     data=["AMS2019positronfraction(0000/00)"]
-    _func=spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])
+    _func=spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])
     index=0
   end
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="e+e-.dat", index=index,yscale=:log, ylabel="\$E^{3}dN/dE [GeV^{3}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
+
+function plot_he(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019he4(2011/05-2017/11)"])
+  _func=spec -> rescale(spec["Helium_4"] , 2.7) * 1e4
+  if data==["he4"]
+    data=["AMS2019he4(2011/05-2017/11)"]
+  elseif data==["he3"]
+    data=["AMS2019he3(2011/05-2017/11)"]
+    _func=spec -> rescale(spec["Helium_3"] , 2.7) * 1e4
+  elseif data==["he3r"]
+    data==["AMS2019he3rigidity(2011/05-2017/11)"]
+    _func=spec -> rescale(spec["Helium_3"] , 2.7) * 1e4
+  elseif data==["he4r"]
+    data==["AMS2019he4rigidity(2011/05-2017/11)"]
+    _func=spec -> rescale(spec["Helium_4"] , 2.7) * 1e4
+  end
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="heratio.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
 """
@@ -278,6 +296,16 @@ function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String
                   spectra, label; phi=phi, data=data, datafile="pbarp.dat", yscale=:log, ylabel="\$ \bar{p}/p \$")
  #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
  #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
+end
+
+function plot_be109(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["ACE(1997/08-1999/07)ISOMAX(1998/08)"])
+  _func=spec -> (spec["Beryllium_10"] / spec["Beryllium_9"]) 
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="beratio.dat", ylabel="\$^{10}Be/^{9}Be\$")
+end
+
+function plot_he34(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019rigidity(2011/05-2017/11)"])
+  _func=spec -> (spec["Helium_3"] / spec["Helium_4"]) 
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="heratio.dat", ylabel="\$^{3}He/^{4}He\$")
 end
 
 function plot_index(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real})
