@@ -5,6 +5,13 @@ module DataPlots
 export plot_BC
 export plot_proton
 export plot_pbar
+export plot_primary
+export plot_secondary
+export plot_e
+export plot_pbarp
+export plot_he
+export plot_he34
+export plot_be109
 export modulation
 export +
 export /
