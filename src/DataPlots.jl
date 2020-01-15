@@ -208,7 +208,7 @@ end
 * `data`:    The dataset to plot
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2015(2011/05-2013/11)"])
-  ind= (data==["AMS2015(2011/05-2013/11)"] || data==["AMS2015rigidity(2011/05-2013/11)"]) ? 0 : -2.7
+  ind= (data==["AMS2015(2011/05-2013/11)"] || data==["AMS2015rigidity(2011/05-2013/11)"]|| data==["PAMELA(2006/07-2008/12)"]) ? 0 : -2.7
   plot_comparison(spec -> rescale(spec["Hydrogen_1"] + spec["Hydrogen_2"] +spec["secondary_protons"], 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", index=ind,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
