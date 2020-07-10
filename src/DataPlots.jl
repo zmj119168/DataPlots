@@ -216,11 +216,17 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
   data=(data==["he"] ? ["AMS2017heliumrigidity(2011/05/19-2016/05/26)"] : 
         data==["c"]  ? ["AMS2017carbonrigidity(2011/05/19-2016/05/26)"] :
         data==["o"]  ? ["AMS2017oxygenrigidity(2011/05/19-2016/05/26)"] :
-        data==["n"]  ? ["AMS2018nitrogenrigidity(2011/05/19-2016/05/26)"] : data)
+        data==["n"]  ? ["AMS2018nitrogenrigidity(2011/05/19-2016/05/26)"] : 
+		data==["ne"]  ? ["AMS2020neonrigidity(2011/05/19-2018/05/26)"] : 
+		data==["mg"]  ? ["AMS2020magnesiumrigidity(2011/05/19-2018/05/26)"] : 
+		data==["si"]  ? ["AMS2020siliconrigidity(2011/05/19-2018/05/26)"] : data)
   _func=(occursin("helium", data[1])  ? spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4 : 
          occursin("carbon", data[1])  ? spec -> rescale(spec["Carbon_12"] + spec["Carbon_13"], 2.7) * 1e4 :
          occursin("oxygen", data[1])  ? spec ->rescale(spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"], 2.7) * 1e4 :
-         occursin("nitrogen", data[1]) ? spec ->rescale(spec["Nitrogen_14"] + spec["Nitrogen_15"], 2.7) * 1e4 : spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4)
+         occursin("nitrogen", data[1]) ? spec ->rescale(spec["Nitrogen_14"] + spec["Nitrogen_15"], 2.7) * 1e4 :
+		 occursin("neon", data[1]) ? spec ->rescale(spec["Neon_20"] + spec["Neon_21"] + spec["Neon_22"], 2.7) * 1e4 :
+		 occursin("magnesium", data[1]) ? spec ->rescale(spec["Magnesium_24"] + spec["Magnesium_25"] + spec["Magnesium_26"], 2.7) * 1e4 :
+		 occursin("silicon", data[1]) ? spec ->rescale(spec["Silicon_28"] + spec["Silicon_29"] + spec["Silicon_30"], 2.7) * 1e4 :spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4)
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="primary.dat", index=-2.7,yscale=:log, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
