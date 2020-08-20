@@ -286,8 +286,8 @@ function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,
  #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
-function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016rigidity(0000/00)"])
-  plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"])/(spec["Hydrogen_1"] + spec["Hydrogen_2"]+spec["secondary_protons"]) ,
+function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2015/05)"])
+  plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"])/(spec["Hydrogen_1"] +spec["secondary_protons"]) ,
                   spectra, label; phi=phi, data=data, datafile="pbarp.dat", yscale=:log, ylabel="\$ \bar{p}/p \$")
  #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
  #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
