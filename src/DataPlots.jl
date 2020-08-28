@@ -22,6 +22,7 @@ using FITSUtils
 using Printf
 using FITSIO
 using LsqFit
+using DelimitedFiles
 
 """
     modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real};
@@ -42,6 +43,55 @@ function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:
   spec = extrapolate(itpspec, Line())
 
   (ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene)) 
+end
+
+"""
+    Cholis_modulation(particle::Particle;t0::Int , t1::Int )
+
+Doing solar modulation for specified particle using time , rigidity and charge-dependent solar modulation from Ilias Cholis et al. arx:1511.01507; 
+
+# Arguments
+* `particle`:  a struct for one kind of particle, if multiple particles are combined ,make sure the main Isotope is added first (example: spec2['Carbon_12']+spec2['Carbon_13'],
+not spec2['Carbon_13']+spec2['Carbon_12'])
+* `t0`and`t1`:    when did this experiment start and end, YYYYMMDD
+"""
+function Cholis_modulation(particle::Particle;t0::Int = 20110519, t1::Int = 20160526)
+  path1="/home/dm/zhaomj/software/source/solar-modulation/example_input_files/"
+  path2="ism_spectrum.txt"
+  write_spec(path1*path2,particle.Ekin,particle.dNdE)
+  name=(particle.Z==1 ? (particle.A==1 ? "proton" : (particle.A==-1 ? "deuteron" : "positron" )) : 
+        particle.Z==-1 ? (particle.A==1 ? "antiproton" : "electron" ) : 
+        particle.Z==2 ? (particle.A==3 ? "helium3" : "helium4" ) :
+        particle.Z==3 ? (particle.A==6 ? "lithium6" : "lithium7" ) : 
+	particle.Z==4 ? (particle.A==9 ? "beryllium9" : "beryllium10" ) : 
+	particle.Z==5 ? (particle.A==10 ? "boron10" : "boron11" ) :
+	particle.Z==6 ? (particle.A==12 ? "carbon12" : "carbon13" ) :
+	particle.Z==7 ? (particle.A==14 ? "nitrogen14" : "nitrogen15" ) :
+	particle.Z==8 ? (particle.A==16 ? "oxygen16" : (particle.A==17 ? "oxygen17" : "oxygen18" ) ) : "?")
+  t0_mjd=string(YMDtoMJD(t0))
+  t1_mjd=string(YMDtoMJD(t1))
+  change="s/particle_name: '.*'/particle_name: '$name'/g"
+  change2="s/observation_starttime: .*#/observation_starttime: $t0_mjd #/g"
+  change3="s/observation_endtime: .*#/observation_endtime: $t1_mjd #/g"
+  run(`sed -i $change /home/dm/zhaomj/software/source/solar-modulation/analysis_options.yaml`)
+  run(`sed -i $change2 /home/dm/zhaomj/software/source/solar-modulation/analysis_options.yaml`)
+  run(`sed -i $change3 /home/dm/zhaomj/software/source/solar-modulation/analysis_options.yaml`)
+  run(`python3.6 /home/dm/zhaomj/software/source/solar-modulation/modulate_main.py`)
+  readdlm("/home/dm/zhaomj/software/source/solar-modulation/outfile/modulatd_spectrum.txt", ' ', Float64; comments=true, comment_char='#')
+end
+
+function YMDtoMJD(t::Int)
+   Y=t÷1e4-1900
+   M=t÷100%100
+   D=t%100
+   L=(M==1 || M==2) ? 1 : 0
+   return MJD=14956+D+(Y-L)*365.25÷1+(M+1+L*12)*30.6001÷1
+end
+
+function write_spec(fname::String,ene::Array{T,1} where {T<:Real}, dNdE::Array{T,1} where {T<:Real})
+    open(fname, "w") do io
+       writedlm(io, [ene dNdE])
+    end
 end
 
 """
