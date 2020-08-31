@@ -15,6 +15,7 @@ export plot_be109
 export modulation
 export +
 export /
+export zero_
 
 using Plots
 using Interpolations
@@ -230,6 +231,19 @@ function rescale(a::Particle, index::Real)
   a.dNdE = @. a.dNdE * a.Ekin^index
   a.dNdR = @. a.dNdR * a.R^index
   a
+end
+
+function rescale(spec::Dict{String,Particle}, norm::Real)
+  nspec = copy(spec)
+  for a in collect(keys(spec))
+  nspec[a].dNdE = @. nspec[a].dNdE * norm
+  nspec[a].dNdR = @. nspec[a].dNdR * norm
+  end
+  nspec
+end
+
+function zero_(spec::Dict{String,Particle})
+  rescale(spec,0)
 end
 
 """
