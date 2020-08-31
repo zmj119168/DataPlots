@@ -4,6 +4,7 @@ authors = ["linsj "]
 version = "0.1.0"
 
 [deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 FITSUtils = "e3c3ba48-db7a-11e9-0297-7f801741554f"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
