@@ -47,7 +47,7 @@ function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:
 end
 
 """
-    Cholis_modulation(particle::Particle;t0::Int , t1::Int )
+    cholis_modulation(particle::Particle;t0::Int , t1::Int )
 
 Doing solar modulation for specified particle using time , rigidity and charge-dependent solar modulation from Ilias Cholis et al. arx:1511.01507; 
 
@@ -55,13 +55,14 @@ Doing solar modulation for specified particle using time , rigidity and charge-d
 * `particle`:  a struct for one kind of particle, if multiple particles are combined ,make sure the main Isotope is added first (example: spec2['Carbon_12']+spec2['Carbon_13'],
 not spec2['Carbon_13']+spec2['Carbon_12'])
 * `t0`and`t1`:    when did this experiment start and end, YYYYMMDD
+* `Z`:    only specified when modulating antiproton or electron(z=-1)
 """
-function Cholis_modulation(particle::Particle;t0::Int = 20110519, t1::Int = 20160526)
+function cholis_modulation(particle::Particle;t0::Int = 20110519, t1::Int = 20160526,z::Int =0)
   path1="/home/dm/zhaomj/software/source/solar-modulation/example_input_files/"
   path2="ism_spectrum.txt"
   write_spec(path1*path2,particle.Ekin,particle.dNdE)
-  name=(particle.Z==1 ? (particle.A==1 ? "proton" : (particle.A==-1 ? "deuteron" : "positron" )) : 
-        particle.Z==-1 ? (particle.A==1 ? "antiproton" : "electron" ) : 
+  name=(z==-1 ? (particle.A==1 ? "antiproton" : "electron" ) : 
+        particle.Z==1 ? (particle.A==1 ? "proton" : (particle.A==-1 ? "deuteron" : "positron" )) :  
         particle.Z==2 ? (particle.A==3 ? "helium3" : "helium4" ) :
         particle.Z==3 ? (particle.A==6 ? "lithium6" : "lithium7" ) : 
 	particle.Z==4 ? (particle.A==9 ? "beryllium9" : "beryllium10" ) : 
@@ -234,7 +235,7 @@ function rescale(a::Particle, index::Real)
 end
 
 function rescale(spec::Dict{String,Particle}, norm::Real)
-  nspec = copy(spec)
+  nspec = deepcopy(spec)
   for a in collect(keys(spec))
   nspec[a].dNdE = @. nspec[a].dNdE * norm
   nspec[a].dNdR = @. nspec[a].dNdR * norm
@@ -309,17 +310,20 @@ function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{St
 end
 
 function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(2011/05/19-2017/11/12)"])
-#  _func=spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["knock_on_electrons"], 3.0) * 1e4
   data=(data==["e-"] ? ["AMS2019electron(2011/05/19-2017/11/12)"] : 
         data==["e+"]  ? ["AMS2019positron(2011/05/19-2017/11/12)"] :
         data==["eall"]  ? ["AMS2019combined(2011/05/19-2017/11/12)"] :
-        data==["fp"]  ? ["AMS2019fraction(2011/05/19-2017/11/12)"] : data)
+        data==["fr"]  ? ["AMS2019fraction(2011/05/19-2017/11/12)"] : data)
   _func=(occursin("electron", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4 : 
          occursin("positron", data[1])  ? spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
          occursin("combined", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
          occursin("fraction", data[1]) ? (spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])) : spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4)
   index= occursin("fraction", data[1]) ? 0 : -3
-  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="e+e-.dat", index=index,yscale=:log, ylabel="\$E^{3}dN/dE [GeV^{3}(m^{2}*sr*s*GeV)^{-1}]\$")
+  if occursin("fraction", data[1])
+  yscale=:identity
+  else yscale=:log
+  end
+  plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="e+e-.dat", index=index,yscale=yscale, ylabel=occursin("fraction", data[1]) ? "\$e^{+}/(e^{+}+e^{-})\$" : "\$E^{3}dN/dE [GeV^{3}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
 function plot_he(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019he4(2011/05-2017/11)"])
@@ -351,9 +355,7 @@ end
 
 function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2015/05)"])
   plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"]) / (spec["Hydrogen_1"] +spec["secondary_protons"]), 
-                  spectra, label; phi=phi, data=data, datafile="pbarp.dat", yscale=:log, ylabel=" \bar{p}/p ")
- #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
- #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
+                  spectra, label; phi=phi, data=data, datafile="pbarp.dat", ylabel="\$ ^{-}p/p \$")
 end
 
 function plot_be109(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["ACE(1997/08/27-1999/04/09)","ISOMAX(1998/08/04-08/05)"])
@@ -366,9 +368,9 @@ function plot_he34(spectra::Array{Dict{String,Particle},1}, label::Array{String,
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="heratio.dat", ylabel="\$^{3}He/^{4}He\$")
 end
 
-function plot_index(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real})
-  logene = log.(ene)
-  logflux = log.(flux)
+function plot_index(a::Particle)
+  logene = log.(a.R)
+  logflux = log.(a.dNdR)
   point=fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(7.09)<logene[i]<log(12.0)])
   point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(12.0)<logene[i]<log(16.6)]))
   point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(16.6)<logene[i]<log(22.8)]))
