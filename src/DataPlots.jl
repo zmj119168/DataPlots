@@ -36,7 +36,7 @@ Doing solar modulation for specified spectrum; ene in unit [GeV]; flux is the nu
 * `phi`:    modulation potential [unit: GV]
 """
 function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real}; A::Int = 1, Z::Int = 1,phi::Real = 0)
-  phi_ = phi * abs(Z) / max(A,1)
+  phi_ = phi* abs(Z) / max(A,1)
   m0 = A == 0 ? 0.511e-3 : 0.9382
 
   logene = log.(ene)
@@ -57,11 +57,11 @@ not spec2['Carbon_13']+spec2['Carbon_12'])
 * `t0`and`t1`:    when did this experiment start and end, YYYYMMDD
 * `Z`:    only specified when modulating antiproton or electron(z=-1)
 """
-function cholis_modulation(particle::Particle;t0::Int = 20110519, t1::Int = 20160526,z::Int =0)
+function cholis_modulation(particle::Particle;t0::Int = 20110519, t1::Int = 20160526)
   path1="/home/dm/zhaomj/software/source/solar-modulation/example_input_files/"
   path2="ism_spectrum.txt"
   write_spec(path1*path2,particle.Ekin,particle.dNdE)
-  name=(z==-1 ? (particle.A==1 ? "antiproton" : "electron" ) : 
+  name=(particle.Z==-1 ? (particle.A==1 ? "antiproton" : "electron" ) : 
         particle.Z==1 ? (particle.A==1 ? "proton" : (particle.A==-1 ? "deuteron" : "positron" )) :  
         particle.Z==2 ? (particle.A==3 ? "helium3" : "helium4" ) :
         particle.Z==3 ? (particle.A==6 ? "lithium6" : "lithium7" ) : 
@@ -124,13 +124,14 @@ Doing solar modulation for a spectra dict of many Particles produced by FITSUtil
 
 # Arguments
 * `phi`:    modulation potential [unit: GV]
+* `phi0`:   modulation potential for pbar [unit: GV]
 """
-function dict_modulation(spec::Dict{String,Particle}, phi::Real = 0)
+function dict_modulation(spec::Dict{String,Particle}, phi::Real = 0; phi0::Real = 0)
   phi == 0 && return spec
 
   mod_spec = Dict{String,Particle}()
   for k in keys(spec)
-    mod_spec[k] = modulation(copy(spec[k]), phi)
+    mod_spec[k] = (phi0!=0 && spec[k].Z==-1) ? modulation(copy(spec[k]), phi0) : modulation(copy(spec[k]), phi)
   end
 
   return mod_spec
@@ -171,7 +172,7 @@ function plot_data!(data::Array{T,2} where { T <: Real },label::String)
 end
 
 function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
-                         phi::Real = 0,
+                         phi::Real = 0,phi0::Real = 0,
                          data::Array{String,1} = [],
                          datafile::String = "", index::Real = 0, norm::Real = 1,
                          xscale::Symbol = :log10, yscale::Symbol = :none,
@@ -200,7 +201,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   end
   plot!(xscale=xscale, xlabel=whole_ekin ? "Ekin[GeV]" : "R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(replace(ylabel,"Ge"=>"G"),"E"=>"R"))
 
-  mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
+  mod_spectra = map(spec->dict_modulation(spec,phi;phi0=phi0), spectra)
   for i in 1:length(mod_spectra)
     ptc = plot_func(mod_spectra[i])
     ene, flux = whole_ekin ? (ptc.Ekin, ptc.dNdE) : (ptc.R, ptc.dNdR)
@@ -353,17 +354,21 @@ end
 # Arguments
 * `phi`:     modulation potential [unit: GV]
 * `data`:    The dataset to plot
+
+# phi0: AMS02rigidity(2011/05-2015/05) may be 0.42 ,BESS-PolarII(2007/12-2008/01) may be 0.38,PAMELA(2006/07-2008/12) may be 0.41,PAMELA(2006/07-2009/12) may be 0.39,BESSI(2004/12) may be 0.39 
 """
-function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016nonformal(2011/05/19-2015/05/26)"],k::Real = 1)
+function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016nonformal(2011/05/19-2015/05/26)"],k::Real = 1)           
+  
   plot_comparison(spec -> rescale(spec["secondary_antiprotons"] + spec["tertiary_antiprotons"], 2.7) * 1e4*k,
-                  spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2.7, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
+                  spectra, label; phi=phi,phi0=phi, data=data, datafile="pbar.dat",index=-2.7, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
  #plot_comparison(spec -> rescale(spec["DM_antiprotons"], 2.0) * 1e-3,
  #                spectra, label; phi=phi, data=data, datafile="pbar.dat",index=-2, yscale=:log, ylabel="\$E^{2}dN/dE [GeV^{2}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
 
-function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2015/05)"])
+
+function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0,phi0::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2015/05)"]) 
   plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"]) / (spec["Hydrogen_1"] +spec["secondary_protons"]), 
-                  spectra, label; phi=phi, data=data, datafile="pbarp.dat", ylabel="\$ ^{-}p/p \$")
+                  spectra, label; phi=phi,phi0=phi0, data=data, datafile="pbarp.dat", ylabel="\$ ^{-}p/p \$")
 end
 
 function plot_be109(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["ACE(1997/08/27-1999/04/09)","ISOMAX(1998/08/04-08/05)"])
