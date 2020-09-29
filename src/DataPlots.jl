@@ -285,7 +285,7 @@ end
 * `phi`:     modulation potential [unit: GV]
 * `data`:    The dataset to plot
 """
-function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2015(2011/05-2013/11)"])
+function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"])
   plot_comparison(spec -> rescale(spec["Hydrogen_1"]+spec["Hydrogen_2"]+spec["secondary_protons"] , 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", index=0,yscale=:log10, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
 end
@@ -324,7 +324,7 @@ function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} 
   data=(data==["e-"] ? ["AMS2019electron(2011/05/19-2017/11/12)"] : 
         data==["e+"]  ? ["AMS2019positron(2011/05/19-2017/11/12)"] :
         data==["eall"]  ? ["AMS2019combined(2011/05/19-2017/11/12)"] :
-        data==["fr"]  ? ["AMS2019fraction(2011/05/19-2017/11/12)"] : data)
+        data==["fr"]  ? ["AMS2019fraction(2011/05/19-2018/05/19)"] : data)
   _func=(occursin("electron", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4 : 
          occursin("positron", data[1])  ? spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
          occursin("combined", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
@@ -359,7 +359,7 @@ end
 
 # phi0: AMS02rigidity(2011/05-2015/05) may be 0.42 ,BESS-PolarII(2007/12-2008/01) may be 0.38,PAMELA(2006/07-2008/12) may be 0.41,PAMELA(2006/07-2009/12) may be 0.39,BESSI(2004/12) may be 0.39 
 """
-function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2016nonformal(2011/05/19-2015/05/26)"],k::Real = 1)           
+function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"],k::Real = 1)           
   
   plot_comparison(spec -> rescale(spec["secondary_antiprotons"] + spec["tertiary_antiprotons"], 2.7) * 1e4*k,
                   spectra, label; phi=phi,phi0=phi, data=data, datafile="pbar.dat",index=-2.7, ylabel="\$E^{2.7}dN/dE [GeV^{2.7}(m^{2}*sr*s*GeV)^{-1}]\$")
@@ -368,7 +368,7 @@ function plot_pbar(spectra::Array{Dict{String,Particle},1}, label::Array{String,
 end
 
 
-function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0,phi0::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2015/05)"]) 
+function plot_pbarp(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0,phi0::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"]) 
   plot_comparison(spec -> (spec["secondary_antiprotons"] + spec["tertiary_antiprotons"]) / (spec["Hydrogen_1"] +spec["secondary_protons"]), 
                   spectra, label; phi=phi,phi0=phi0, data=data, datafile="pbarp.dat", ylabel="\$ ^{-}p/p \$")
 end
