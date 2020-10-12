@@ -16,6 +16,7 @@ export modulation
 export +
 export /
 export zero_
+export purety
 
 using Plots
 using Interpolations
@@ -164,11 +165,11 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
 end
 
 function plot_data(data::Array{T,2} where { T <: Real },label::String)
-  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label)
+  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label,gridalpha=0.5,gridstyle=:dash,thickness_scaling = 2)
 end
 
 function plot_data!(data::Array{T,2} where { T <: Real },label::String)
-  plot!(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label)
+  plot!(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label,gridalpha=0.5,gridstyle=:dash,thickness_scaling = 2)
 end
 
 function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
@@ -187,11 +188,11 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
       data_keys = keys(pdata)
       throw("The specified data not found, note that the available data in file $datafile are:\n$data_keys")
     end
-
-    for k in data
-      plot_data!(pdata[k], k)
+    if pure==0
+     for k in data
+       plot_data!(pdata[k], k)
+     end
     end
-
     whole_rigidity = mapreduce(k->occursin("rigidity", k), &, data)
     whole_ekin = mapreduce(k->!occursin("rigidity", k), &, data)
   end
@@ -205,7 +206,12 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   for i in 1:length(mod_spectra)
     ptc = plot_func(mod_spectra[i])*norm
     ene, flux = whole_ekin ? (ptc.Ekin, ptc.dNdE) : (ptc.R, ptc.dNdR)
+    if pure!=0
+     plot!(ene, flux; alpha=0.25,color=color,label="")
+    else 
     plot!(ene, flux; label = i<=length(label) ? label[1,i] : "")
+    end
+    
   end
   plot!()
 end
@@ -409,4 +415,9 @@ function fitting(xydata::Array{Tuple{Float64,Float64},1})
     end
   end
 end
+function purety(A::Int = 0;col::Symbol = :yellow)
+ global pure= A
+ global color=col
+end
+purety(0)
 end # module
