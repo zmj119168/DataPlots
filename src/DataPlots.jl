@@ -330,9 +330,12 @@ function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} 
   data=(data==["e-"] ? ["AMS2019electron(2011/05/19-2017/11/12)"] : 
         data==["e+"]  ? ["AMS2019positron(2011/05/19-2017/11/12)"] :
         data==["eall"]  ? ["AMS2019combined(2011/05/19-2017/11/12)"] :
-        data==["fr"]  ? ["AMS2019fraction(2011/05/19-2018/05/19)"] : data)
+        data==["fr"]  ? ["AMS2019fraction(2011/05/19-2017/11/12)"] :
+        data==["pe"]  ? ["AMS02primaryele(computed)"] : data)
   _func=(occursin("electron", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4 : 
          occursin("positron", data[1])  ? spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
+        # occursin("computed", data[1])  ? spec -> rescale( deepcopy(spec["primary_electrons"]), 3.0) * 1e4 :
+         occursin("computed", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]-spec["secondary_positrons"], 3.0) * 1e4 :
          occursin("combined", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
          occursin("fraction", data[1]) ? (spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])) : spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4)
   index= occursin("fraction", data[1]) ? 0 : -3
