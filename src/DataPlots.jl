@@ -329,7 +329,7 @@ end
 function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(2011/05/19-2017/11/12)"])
   data=(data==["e-"] ? ["AMS2019electron(2011/05/19-2017/11/12)"] : 
         data==["e+"]  ? ["AMS2019positron(2011/05/19-2017/11/12)"] :
-        data==["eall"]  ? ["AMS2019combined(2011/05/19-2017/11/12)"] :
+        data==["eall"]  ? ["AMS02combined(2011/05-2018/05)"] :
         data==["fr"]  ? ["AMS2019fraction(2011/05/19-2017/11/12)"] :
         data==["pe"]  ? ["AMS02primaryele(computed)"] : data)
   _func=(occursin("electron", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4 : 
