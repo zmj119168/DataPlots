@@ -334,8 +334,8 @@ function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} 
         data==["pe"]  ? ["AMS02primaryele(computed)"] : data)
   _func=(occursin("electron", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4 : 
          occursin("positron", data[1])  ? spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
-        # occursin("computed", data[1])  ? spec -> rescale( deepcopy(spec["primary_electrons"]), 3.0) * 1e4 :
-         occursin("computed", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]-spec["secondary_positrons"], 3.0) * 1e4 :
+         occursin("computed", data[1])  ? spec -> rescale( deepcopy(spec["primary_electrons"]), 3.0) * 1e4 :
+      #   occursin("computed", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]-spec["secondary_positrons"], 3.0) * 1e4 :
          occursin("combined", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * 1e4 :
          occursin("fraction", data[1]) ? (spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])) : spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) * 1e4)
   index= occursin("fraction", data[1]) ? 0 : -3
@@ -392,31 +392,45 @@ function plot_he34(spectra::Array{Dict{String,Particle},1}, label::Array{String,
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="heratio.dat", ylabel="\$^{3}He/^{4}He\$")
 end
 
-function plot_index(a::Particle)
-  logene = log.(a.R)
-  logflux = log.(a.dNdR)
-  point=fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(7.09)<logene[i]<log(12.0)])
-  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(12.0)<logene[i]<log(16.6)]))
-  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(16.6)<logene[i]<log(22.8)]))
-  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(22.8)<logene[i]<log(41.9)]))
-  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(41.9)<logene[i]<log(60.3)]))
-  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(60.3)<logene[i]<log(192)]))
-  point=vcat(point,fitting([(logene[i],logflux[i]) for i=1:length(logene) if log(192)<logene[i]<log(3300)]))
-  plot!(exp.([pot[1] for pot in point]),[pot[2] for pot in point]; yerror=[pot[3] for pot in point], linewidth=0, marker=:dot,xscale=:log10)
+function plot_index(a::Particle,start::Int ,length::Int )
+  logene = log10.(a.R)
+  logflux = log10.(a.dNdR)
+  gamma=fitting([logene logflux])[1]
+  plot!(a.R[start:start+length],gamma[start:start+length], xscale=:log10)
 end
 
-function fitting(xydata::Array{Tuple{Float64,Float64},1})
+function plot_list(spec::Dict{String,Particle};start::Int=25 ,length::Int=20)
+   plot_index(modulation(spec["Hydrogen_1"]+spec["Hydrogen_2"]+spec["secondary_protons"],0.7),start+3,length)
+   plot_index(modulation(spec["Helium_3"] + spec["Helium_4"],0.8),start,length)
+   plot_index(modulation(spec["Carbon_12"] + spec["Carbon_13"],0.8),start,length)
+   plot_index(modulation(spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"],0.8),start,length)
+   plot_index(modulation(spec["Beryllium_7"] + spec["Beryllium_9"] + spec["Beryllium_10"],0.8),start,length)
+   plot_index(modulation(spec["Boron_10"] + spec["Boron_11"],0.8),start,length)
+end
+
+function plot_exlist()
+   plot_exindex("AMS2017heliumrigidity(2011/05/19-2016/05/26)","primary.dat",20,40,"he")
+   plot_exindex("AMS2017carbonrigidity(2011/05/19-2016/05/26)","primary.dat",20,40,"c")
+   plot_exindex("AMS2017oxygenrigidity(2011/05/19-2016/05/26)","primary.dat",20,39,"o")
+   plot_exindex("AMS2017berylliumrigidity(2011/05/19-2016/05/26)","secondary.dat",20,39,"be")
+   plot_exindex("AMS2017boronrigidity(2011/05/19-2016/05/26)","secondary.dat",20,39,"b")
+   plot_exindex("AMS02rigidity(2011/05-2018/05)","proton.dat",25,39,"proton",index=2.7)
+   plot_exindex("AMS02rigidity(2011/05-2018/05)","pbar.dat",25,25,"pbar")
+end
+
+function plot_exindex(k::String,datafile::String ,start::Int ,length::Int,label::String; index::Real = 0, norm::Real = 1)
+      pdata = get_data(datafile; index=index, norm=norm)
+      data=pdata[k]
+  logene = log10.(data[:,1])
+  logflux = log10.(data[:,2])
+  gamma,err=fitting([logene logflux])
+  plot!(data[:,1][start:start+length],gamma[start:start+length];ribbon=err[start:start+length],linewidth=0, marker=:dot, xscale=:log10,label=label)
+end
+
+function fitting(xydata::Array{T,2} where { T <: Real })
   @. model(x, p) = p[1]*x+p[2]
   p0 = [-2.6, 1e1]
-  fit=curve_fit(model, [xy[1] for xy in xydata], [xy[2] for xy in xydata], p0)  
-  gamma=coef(fit)[1]
-  err=stderror(fit)[1]
-  min=minimum(abs.(fit.resid))
-  for i=1:length(fit.resid)
-    if min==abs.(fit.resid)[i]
-      return ([xy[1] for xy in xydata][i],gamma,err)
-    end
-  end
+ ([coef(curve_fit(model, xydata[k-3:k+3,1], xydata[k-3:k+3,2], p0))[1] for k=4:size(xydata,1)-3],[stderror(curve_fit(model, xydata[k-3:k+3,1], xydata[k-3:k+3,2], p0))[1] for k=4:size(xydata,1)-3])
 end
 function purety(A::Int = 0;col::Symbol = :yellow)
  global pure= A
