@@ -282,10 +282,35 @@ function plot_BeB(spectra::Array{Dict{String,Particle},1}, label::Array{String,2
                   spectra, label; phi=phi, data=data, datafile="bebratio.dat", ylabel="Be/B")
 end
 
-function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"])
- data=(data==["fe/o"] ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : data)
- ylabel=(occursin("Fe/O", data[1])  ? "Fe/O" : data[1])
-  _func=(occursin("Fe/O", data[1])  ? spec-> (spec["Iron_54"] + spec["Iron_56"] + spec["Iron_57"]+spec["Iron_58"]) / (spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"]) : spec-> (spec["Iron_54"] + spec["Iron_56"] + spec["Iron_57"]+spec["Iron_58"]) / (spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"]))
+function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0));a::String="fe",b::String="o", phi::Real = 0, data::Array{String,1}=["ams"])
+ ylabel=a*"/"*b
+ data=(data==["rigidity"] ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : 
+       data==["ekin"] ? ["HEAO3-C2(Fe/O)(1979/10-1980/06)"] : data)
+ if data==["ams"]
+   data=(ylabel=="fe/o" ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="fe/he" ? ["AMS2021(Fe/He)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="fe/si" ? ["AMS2021(Fe/Si)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="ne/mg" ? ["AMS2020(Ne/Mg)rigidity(2011/05-2018/05)"] : 
+   ylabel=="b/o" ? ["AMS2018(B/O)rigidity(2011/05-2016/05)"] : 
+   ylabel=="be/c" ? ["AMS2018(Be/C)rigidity(2011/05-2016/05)"] : 
+   ylabel=="be/o" ? ["AMS2018(Be/O)rigidity(2011/05-2016/05)"] : 
+   ylabel=="c/o" ? ["AMS2020(C/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="he/o" ? ["AMS2020(He/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="li/b" ? ["AMS2018(Li/B)rigidity(2011/05-2016/05)"] : 
+   ylabel=="li/c" ? ["AMS2020(Li/C)rigidity(2011/05-2018/05)"] : 
+   ylabel=="li/o" ? ["AMS2020(Li/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="mg/o" ? ["AMS2020(Mg/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="n/b" ? ["AMS2020(N/B)rigidity(2011/05-2018/05)"] : 
+   ylabel=="n/o" ? ["AMS2020(N/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="ne/o" ? ["AMS2020(Ne/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="si/mg" ? ["AMS2020(Si/Mg)rigidity(2011/05-2018/05)"] : 
+   ylabel=="si/o" ? ["AMS2020(Si/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="p/he" ? ["AMS2020(P/He)rigidity(2011/05-2018/05)"] : 
+         ylabel=="b/c" ? ["AMS02(B/C)rigidity(2011/05-2016/05)SM3300"] : 
+         ylabel=="be/b" ? ["AMS02(Be/B)rigidity(2011/05-2016/05)"] : 
+         ylabel=="e+/eall" ? ["AMS2019fraction(2011/05/19-2017/11/12)"] : data)
+ end
+  _func(x)=fun_ratio(x,a=a,b=b)
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="ratio.dat", ylabel=ylabel)
 end
 """
@@ -399,6 +424,27 @@ end
 function plot_he34(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019rigidity(2011/05-2017/11)"])
   _func=spec -> (spec["Helium_3"] / spec["Helium_4"]) 
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="heratio.dat", ylabel="\$^{3}He/^{4}He\$")
+end
+
+function fun_ratio(spec::Dict{String,Particle};a::String="fe",b::String="o")
+   return fun_particle(spec,a)/fun_particle(spec,b)
+end
+function fun_particle(spec::Dict{String,Particle},a::String)
+   list= (a=="p" ? ["Hydrogen_1","Hydrogen_2","secondary_protons"] : 
+          a=="e+" ? ["secondary_positrons","primary_positrons"] : 
+          a=="eall" ? ["primary_electrons","secondary_electrons","secondary_positrons","primary_positrons"] : 
+          a=="he" ? ["Helium_3" , "Helium_4"] : 
+          a=="li" ? ["Lithium_6" , "Lithium_7"] : 
+          a=="be" ? ["Beryllium_7" , "Beryllium_9","Beryllium_10"] : 
+          a=="b" ? ["Boron_10" , "Boron_11"] : 
+          a=="c" ? ["Carbon_12" , "Carbon_13"] : 
+          a=="n" ? ["Nitrogen_14" , "Nitrogen_15"] : 
+          a=="o" ? ["Oxygen_16" , "Oxygen_17","Oxygen_18"] : 
+          a=="ne" ? ["Neon_20" , "Neon_21","Neon_22"] : 
+          a=="mg" ? ["Magnesium_24" , "Magnesium_25","Magnesium_26"] : 
+          a=="si" ? ["Silicon_28" , "Silicon_29","Silicon_30"] : 
+          a=="fe" ? ["Iron_54" , "Iron_56","Iron_57","Iron_58"] : ["Hydrogen_1","Hydrogen_2","secondary_protons"])
+   return sum([spec[list[i]] for i=1:length(list)])
 end
 
 function plot_index(a::Particle,start::Int ,length::Int )
