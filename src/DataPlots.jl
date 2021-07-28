@@ -263,9 +263,10 @@ function Base.:*(a::Particle, n::Real)
 end
 
 function rescale(a::Particle, index::Real)
-  a.dNdE = @. a.dNdE * a.Ekin^index
-  a.dNdR = @. a.dNdR * a.R^index
-  a
+  b = deepcopy(a)
+  b.dNdE = @. b.dNdE * b.Ekin^index
+  b.dNdR = @. b.dNdR * b.R^index
+  b
 end
 
 function rescale(spec::Dict{String,Particle}, norm::Real)
@@ -505,10 +506,13 @@ function fun_particle(spec::Dict{String,Particle},a::String)
           a=="si" ? ["Silicon_28" , "Silicon_29","Silicon_30"] : 
           a=="na" ? ["Sodium_23"] : 
           a=="al" ? ["Aluminium_26" , "Aluminium_27"] :  
-          a=="fe" ? ["Iron_54" , "Iron_56","Iron_57","Iron_58"] : ["Hydrogen_1","Hydrogen_2","secondary_protons"])
+          a=="fe" ? ["Iron_54" , "Iron_56","Iron_57","Iron_58"] : 
+          a=="22ne" ? ["Neon_22"] :  
+          a=="21ne" ? ["Neon_21"] :  
+          a=="20ne" ? ["Neon_20"] : ["Hydrogen_1","Hydrogen_2","secondary_protons"] )
    return sum([spec[list[i]] for i=1:length(list)])
 end
-
+#############################################################
 function plot_index(a::Particle,start::Int ,length::Int )
   logene = log10.(a.R)
   logflux = log10.(a.dNdR)
@@ -544,6 +548,30 @@ function plot_exindex(k::String,datafile::String ,start::Int ,length::Int,label:
   plot!(data[:,1][start:start+length],gamma[start:start+length];ribbon=err[start:start+length],linewidth=0, marker=:dot, xscale=:log10,label=label)
 end
 
+#############################################################
+# used in 2105,04630 for local bumps
+function bump(rigidity::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real},R0::Real, RL::Real,q::Real)
+  gamma=-fitting([log10.(rigidity) log10.(flux)])[1]
+
+  (rigidity[4:size(rigidity,1)-3],abs.(flux[4:size(rigidity,1)-3].*((gamma.+2)./(q.-gamma).*exp.(-(R0./rigidity[4:size(rigidity,1)-3]).^0.5-(rigidity[4:size(rigidity,1)-3]/RL).^0.5).+1))) 
+end
+
+function bump(particle::Particle, R0::Real, RL::Real,q::Real)
+  particle.R, particle.dNdR = bump(particle.R, particle.dNdR, R0,RL,q)
+  count_Ekin(particle)
+end
+
+
+function dict_bump(spec::Dict{String,Particle}; R0::Real = 5878, RL::Real = 2.24e5,q::Real = 4.2)
+  q == 0 && return spec
+
+  bump_spec = Dict{String,Particle}()
+  for k in keys(spec)
+    bump_spec[k] = bump(copy(spec[k]), R0,RL,q)
+  end
+  return bump_spec
+end
+######################################
 function fitting(xydata::Array{T,2} where { T <: Real })
   @. model(x, p) = p[1]*x+p[2]
   p0 = [-2.6, 1e1]
