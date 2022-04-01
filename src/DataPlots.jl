@@ -17,6 +17,7 @@ export +
 export /
 export zero_
 export purety
+export rescale
 
 using Plots
 using Interpolations
@@ -46,7 +47,28 @@ function modulation(ene::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:
 
   (ene, map(e-> e * (e + 2 * m0) / ( (e + phi_) * (e + phi_ + 2 * m0)) * exp(spec(log(e + phi_))), ene)) 
 end
+#################################################################
+"""
+    helmod_modulation(particle::Particle;t0::Int , t1::Int )
 
+    given by www.helmod.org; 
+
+# Arguments
+* `t0`and`t1`:    when did this experiment start and end, YYYYMMDD
+* `Z`:    only specified when modulating antiproton or electron(z=-1)
+"""
+function helmod_modulation(path::String;t0::Int = 20110519, t1::Int = 20160526)
+  t0_br=YMDtoBR(t0)
+  t1_br=YMDtoBR(t1)
+  total = 0
+  for t=t0_br:t1_br
+  run(`python3.7 /home/dm/zhaomj/software/helmod/SolarModulation_Galprop_fast_v1.102.py -a /home/dm/zhaomj/software/helmod/HelModOnlineTime_Z-1_02 --LIS $path --SimName Proton_CR$(t)TKO -o /home/dm/zhaomj/software/helmod/output`)
+  total=readdlm("/home/dm/zhaomj/software/helmod/output/ModSpectra_HelModOutput_Proton_CR$(t)TKO_Tkin.dat", ' ', Float64; comments=true, comment_char='#')[:,2].+total
+  end
+  ekin=readdlm("/home/dm/zhaomj/software/helmod/output/ModSpectra_HelModOutput_Proton_CR$(t0_br)TKO_Tkin.dat", ' ', Float64; comments=true, comment_char='#')[:,1]
+  (ekin,total/(t1_br-t0_br+1))
+end
+#################################################################
 """
     cholis_modulation(particle::Particle;t0::Int , t1::Int )
 
@@ -98,13 +120,20 @@ function YMDtoMJD(t::Int)
    L=(M==1 || M==2) ? 1 : 0
    return MJD=14956+D+(Y-L)*365.25÷1+(M+1+L*12)*30.6001÷1
 end
+function YMDtoBR(t::Int)
+   Y=t÷1e4-1832
+   M=t÷100%100
+   D=t%100
+   mtd=[31,28.25,31,30,31,30,31,31,30,31,30,31]#18320226~0 bartel
+   return BR=Int32(round((Y*365.25+sum(mtd[1:M])+D-57)/27))
+end
 
 function write_spec(fname::String,ene::Array{T,1} where {T<:Real}, dNdE::Array{T,1} where {T<:Real})
     open(fname, "w") do io
        writedlm(io, [ene dNdE])
     end
 end
-
+###############################################################
 """
     modulation(particle::Particle, phi::Real)
 
@@ -199,7 +228,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
                  m in Plots.supported_markers()
              end), Plots._shape_keys)
     markers = permutedims(markers)
-    n = length(markers)
+   # n = length(markers)
      for i=1:length(data)
      k=data[i]
      if pure==-1
@@ -219,16 +248,18 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   plot!(xscale=xscale, xlabel=whole_ekin ? "Kinetic Energy per nucleon[GeV/n]" : "Rigidity R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(replace(ylabel,"(GeV/n)"=>"GV"),"E"=>"R"))
 
   mod_spectra = map(spec->dict_modulation(spec,phi;phi0=phi0), spectra)
+  lis=palette(:tab)
+  n=length(lis)
   for i in 1:length(mod_spectra)
     ptc = plot_func(mod_spectra[i])*norm
     ene, flux = whole_ekin ? (ptc.Ekin, ptc.dNdE) : (ptc.R, ptc.dNdR)
   #  if pure!=0
   #   plot!(ene, flux; alpha=0.1,color=color,label="",framestyle =:box)
    # else
-   if phi==0
-    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",line=(:dot,1.5),framestyle =:box)
+   if phi==0 
+    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",line=(:dot,1.5),framestyle =:box)#,palette=[lis[n-i]])
     else 
-    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",w=1,framestyle =:box)
+    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",w=1,framestyle =:box)#,palette=[lis[n-i]])
     end
     
   end
@@ -250,11 +281,23 @@ function op_particle(a::Particle, b::Particle, op)
   c.dNdR = @. op(c.dNdR, rfunc(c.R))
   c
 end
-
+function op_dict(a::Dict{String,Particle}, b::Dict{String,Particle}, op)
+  c = copy(a)
+  for k in collect(keys(a))
+    if k=="primary_positrons"
+      c[k]=op_particle(a[k], b["primary_electrons"], op)
+    else 
+      c[k]=op_particle(a[k], b[k], op)
+    end
+  end
+  c
+end
 Base.:+(a::Particle, b::Particle) = op_particle(a, b, +)
 Base.:-(a::Particle, b::Particle) = op_particle(a, b, -)
 Base.:*(a::Particle, b::Particle) = op_particle(a, b, *)
 Base.:/(a::Particle, b::Particle) = op_particle(a, b, /)
+Base.:+(a::Dict{String,Particle}, b::Dict{String,Particle}) = op_dict(a, b, +)
+Base.:-(a::Dict{String,Particle}, b::Dict{String,Particle}) = op_dict(a, b, -)
 
 function Base.:*(a::Particle, n::Real)
   a.dNdE .*= n
@@ -269,13 +312,26 @@ function rescale(a::Particle, index::Real)
   b
 end
 
-function rescale(spec::Dict{String,Particle}, norm::Real)
+function rescale(spec::Dict{String,Particle}, norm::Real; z::Int=0,index::Real=0)
   nspec = deepcopy(spec)
   for a in collect(keys(spec))
-  nspec[a].dNdE = @. nspec[a].dNdE * norm
-  nspec[a].dNdR = @. nspec[a].dNdR * norm
+   if z==0
+  nspec[a].dNdE = @. nspec[a].dNdE * norm * nspec[a].Ekin^index
+  nspec[a].dNdR = @. nspec[a].dNdR * norm * nspec[a].R^index
+   elseif nspec[a].Z==z
+    nspec[a].dNdE = @. nspec[a].dNdE * norm * nspec[a].Ekin^index
+    nspec[a].dNdR = @. nspec[a].dNdR * norm * nspec[a].R^index
+   end
   end
   nspec
+end
+function rescale_sec(spec::Dict{String,Particle}, norm::Real,index::Real)
+   nspec = deepcopy(spec)
+   nspec =rescale(nspec,norm,z=3,index=-index)
+   nspec =rescale(nspec,norm,z=4,index=-index)
+   nspec =rescale(nspec,norm,z=5,index=-index)
+   nspec =rescale(nspec,norm,z=9,index=-index)
+   nspec
 end
 
 function zero_(spec::Dict{String,Particle})
@@ -303,7 +359,7 @@ function plot_BeB(spectra::Array{Dict{String,Particle},1}, label::Array{String,2
                   spectra, label; phi=phi, data=data, datafile="bebratio.dat", ylabel="Be/B ratio")
 end
 
-function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0));a::String="fe",b::String="o", phi::Real = 0, data::Array{String,1}=["ams"])
+function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0));a::String="fe",b::String="o", phi::Real = 0, data::Array{String,1}=["ams"],k::Real = 1)
  ylabel=a*"/"*b
  data=(data==["rigidity"] ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : 
        data==["ekin"] ? ["HEAO3-C2(Fe/O)(1979/10-1980/06)"] : data)
@@ -337,7 +393,7 @@ function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String
          ylabel=="be/b" ? ["AMS02(Be/B)rigidity(2011/05-2016/05)"] : 
          ylabel=="e+/eall" ? ["AMS2019fraction(2011/05/19-2017/11/12)"] : data)
  end
-  _func(x)=fun_ratio(x,a=a,b=b)
+  _func(x)=fun_ratio(x,a=a,b=b)*k
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="ratio.dat", ylabel=ylabel*" ratio")
 end
 """
@@ -356,7 +412,7 @@ function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{Strin
 end
 
 function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017heliumrigidity(2011/05/19-2016/05/26)"],k::Real = 1)
-  data=(data==["he"] ? ["AMS2017heliumrigidity(2011/05/19-2016/05/26)"] : 
+  data=(data==["he"] ? ["AMS02heliumrigidity(2011/05-2018/05)"] : 
         data==["c"]  ? ["AMS2017carbonrigidity(2011/05/19-2016/05/26)"] :
         data==["o"]  ? ["AMS2017oxygenrigidity(2011/05/19-2016/05/26)"] :
         data==["n"]  ? ["AMS2018nitrogenrigidity(2011/05/19-2016/05/26)"] : 
@@ -402,7 +458,7 @@ end
 # Arguments
 * `data`:    The dataset to plot
 """
-function plot_all(spectra::Dict{String,Particle}, label::Array{String,2} = Array{String,2}(undef, (0,0));  data::Array{String,1}=[""],k::Real = 1)
+function plot_all(spectra::Dict{String,Particle}, label::Array{String,2} = Array{String,2}(undef, (0,0));  data::Array{String,1}=[""])
  m0 = 0.9382
   eaxis=spectra["Hydrogen_1"].Ekin
     tot_spec = Dict{String,Array{T,1} where {T<:Real}}()
@@ -414,9 +470,21 @@ function plot_all(spectra::Dict{String,Particle}, label::Array{String,2} = Array
   end
    specall=[sum([tot_spec[k][n] for k in keys(tot_spec)]) for n=1:length(eaxis)]
     pdata = get_data("allparticles.dat"; index=-2.6, norm=1)
-    for k in data
-       plot_data!(pdata[k], k)
+    if pure<1
+     markers = filter((m->begin
+                 m in Plots.supported_markers()
+             end), Plots._shape_keys)
+    markers = permutedims(markers)
+    n = length(markers)
+      for i=1:length(data)
+     k=data[i]
+     if pure==-1
+     mar_typ=markers[marker_i]
+     else mar_typ=markers[i]
      end
+       plot_data!(pdata[k], k,mar_typ)
+     end
+    end
   plot!(eaxis,specall.*eaxis.^2.6,xscale=:log10,yscale=:log10)
 end
 
@@ -430,7 +498,7 @@ function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} 
          occursin("positron", data[1])  ? spec -> rescale(spec["secondary_positrons"] + spec["primary_positrons"], 3.0) * k*1e4 :
       #   occursin("computed", data[1])  ? spec -> rescale( deepcopy(spec["primary_electrons"]), 3.0) *k* 1e4 :
          occursin("computed", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]-spec["secondary_positrons"], 3.0) * 1e4 :
-         occursin("combined", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"], 3.0) *k* 1e4 :
+         occursin("combined", data[1])  ? spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] , 3.0) *k* 1e4 :
          occursin("fraction", data[1]) ? (spec->(spec["secondary_positrons"] + spec["primary_positrons"])/(spec["primary_electrons"] + spec["secondary_electrons"]+spec["secondary_positrons"] + spec["primary_positrons"])) : spec -> rescale(spec["primary_electrons"] + spec["secondary_electrons"], 3.0) *k* 1e4)
   index= occursin("fraction", data[1]) ? 0 : -3
   if occursin("fraction", data[1])
@@ -589,6 +657,329 @@ end
 function inter_fun(x::Array{T,1} where {T<:Real},y::Array{T,1} where {T<:Real})
   fun(i) = exp(extrapolate(interpolate((log.(x),), log.(y), Gridded(Linear())), Line())(log.(i)))
   fun
+end
+#####################################
+function local_spec(spec::Dict{String,Particle},fname::String)
+       param=get_param(fname)
+   result = zero_(spec)
+    for name in keys(spec)
+      if name=="Hydrogen_1"
+         result[name] = local_particle(1,1,1.06e6,param["nu"],param)
+      elseif name=="Oxygen_16"
+       result[name] = local_particle(16,8,param["ab_o"],param["nu_cno"],param)
+      elseif    name=="Nitrogen_14"
+         result[name] = local_particle(14,7,param["ab_n"],param["nu_cno"],param)
+      elseif    name=="Carbon_12"
+         result[name] = local_particle(12,6,param["ab_c"],param["nu_cno"],param)
+      elseif    name=="Neon_20"
+         result[name] = local_particle(20,10,param["ab_ne"],param["nu_nemgsi"],param)
+      elseif    name=="Neon_22"
+         result[name] = local_particle(22,10,param["ab_ne2"],param["nu_nemgsi"],param)
+      elseif    name=="Magnesium_24"
+         result[name] = local_particle(24,12,param["ab_mg"],param["nu_nemgsi"],param)
+      elseif    name=="Silicon_28"
+         result[name] = local_particle(28,14,param["ab_si"],param["nu_nemgsi"],param)
+      elseif    name=="Sodium_23"
+         result[name] = local_particle(23,11,param["ab_na"],param["nu_nemgsi"],param)
+      elseif    name=="Aluminium_27"
+         result[name] = local_particle(27,13,param["ab_al"],param["nu_nemgsi"],param)
+      elseif    name=="Iron_56"
+         result[name] = local_particle(56,26,param["ab_fe"],param["nu_fe"],param)
+      else
+      result[name] = local_particle(spec[name].A,spec[name].Z,0,0,param)
+      end
+    end
+    return result
+end
+function local_particle(A::Int,Z::Int,abun::Real,nu::Real,param::Dict{String,Float64})
+  ene=[2* 1.2^i*1e-3 for i=0:110]
+  VELOCITY_LIGHT =2.99792458e8;PC=3.08567758149e16;YEAR=3.15569252e7;m0=0.9382;
+  l=param["l"]*PC;t=param["t_inj"]*YEAR;D_0=param["D_0"]*1e-4;delta=param["delta"]
+  E_nucleon = ene.+m0
+  E         = A*E_nucleon
+  pMc       =@. sqrt(E^2-m0^2*A^2)
+  rigidity  = pMc/Z
+  beta      = pMc./E
+  D=@.D_0* beta*(rigidity/4).^delta
+  if ( (l-VELOCITY_LIGHT*t)>0 && param["t_inj2"]==0)
+   return 0
+  end
+    idndr= Array{Float64}(undef, length(ene))*0   
+    idndr+=-q_inj(A,Z,ene,abun,nu,param["r_cut"]).*(q_fra(A,Z,ene,param)*param["tau"]*YEAR .-1) 
+    idndr+=q_sec(A,Z,ene,param)*param["tau"]*YEAR
+     idndr=[ idndr[i]<0 ? 0 : idndr[i] for i in 1:length(ene)]
+    idndr=idndr.*param["prot_norm"].*beta*VELOCITY_LIGHT/4pi
+    idndr=idndr.* (param["t_inj2"]==0 ? exp.(-l^2 ./(4*D*t)).*(4pi*D*t).^(-3/2) : contine(l,D,D_0,param["t_inj"],param["t_inj2"]) )
+    tmp = Particle(Array{Real,1}(), rigidity, idndr, ene, A, Z)
+    count_Ekin(tmp)
+   return tmp
+end
+function contine(l::Real,K_diff::Array{T,1} where {T<:Real},D0_xx::Real,t1_S::Real,t2_S::Real)
+  n      = 2*200
+  VELOCITY_LIGHT =2.99792458e8;YEAR=3.15569252e7
+  lnT_u  = log(t2_S)
+  lnT_l  = log(t1_S)
+  dlnT   = (lnT_u -lnT_l)/n
+  lnT    = lnT_l
+  let prop   = Array{Float64}(undef, length(K_diff))*0   
+  for i in 0:n
+   t = exp(lnT)
+    if(i == 0 || i == n)
+     weight_SIMPSON = 1/3
+    else
+     weight_SIMPSON = (1+i%2)*2/3
+    end    
+     test = (VELOCITY_LIGHT*t*YEAR -l) < 0. ? 0. : 1.
+    if test == 0
+      prop .+= 0
+    else
+     prop += exp.(-l^2 ./(4*K_diff*t*YEAR)).*(4pi*K_diff/D0_xx).^(-3/2) /sqrt(t)*dlnT*weight_SIMPSON
+    end
+    lnT+= dlnT
+  end
+  prop  ./= (D0_xx^(3/2)*sqrt(YEAR))
+  return prop
+  end
+end
+function q_inj(A::Int,Z::Int,ene::Array{T,1} where {T<:Real},abun::Real,ν::Real,rc::Real)
+  m0=0.9382
+  E_nucleon = ene.+m0
+  E         = A*E_nucleon
+  pMc       =@. sqrt(E^2-m0^2A^2)
+  rigidity  = pMc/Z
+  beta      = pMc./E
+  return @.rigidity^(-ν)*exp(-rigidity/rc)*abun/1.06e6
+end
+function q_fra(A::Int,Z::Int,ene::Array{T,1} where {T<:Real},param::Dict{String,Float64})
+ DEN_H=0.9e6;MBARN=1e-31; 
+   m0=0.9382;YEAR=3.15569252e7;VELOCITY_LIGHT =2.99792458e8
+  E_nucleon = ene.+m0
+  E         = A*E_nucleon
+  pMc       =@. sqrt(E^2-m0^2A^2)
+  beta      = pMc./E
+  CS=get_cs("cs.dat")
+  let sec= Array{Float64}(undef, length(ene))*0   
+    if Z==6
+      sec +=  CS["sigma_C12_total"] 
+    elseif Z==7
+      sec +=  CS["sigma_N14_total"] 
+    elseif Z==8
+      sec +=  CS["sigma_O16_total"] 
+    elseif (Z==10 && A==20)
+      sec +=  CS["sigma_Ne20_total"]
+    elseif (Z==10 && A==22)
+      sec +=  CS["sigma_Ne22_total"]
+    elseif Z==11
+      sec +=  CS["sigma_Na23_total"]  
+    elseif Z==12
+      sec +=  CS["sigma_Mg24_total"] 
+    elseif Z==13
+      sec +=  CS["sigma_Al27_total"] 
+    elseif Z==14
+      sec +=  CS["sigma_Si28_total"] 
+    elseif Z==26
+      sec +=  CS["sigma_Fe56_total"]
+    end
+   return sec*DEN_H*MBARN .*beta*VELOCITY_LIGHT
+  end
+end
+function q_sec(A::Int,Z::Int,ene::Array{T,1} where {T<:Real},param::Dict{String,Float64})
+ DEN_H=0.9e6;MBARN=1e-31; 
+   m0=0.9382;YEAR=3.15569252e7;VELOCITY_LIGHT =2.99792458e8
+  E_nucleon = ene.+m0
+  E         = A*E_nucleon
+  pMc       =@. sqrt(E^2-m0^2A^2)
+  beta      = pMc./E
+  CS=get_cs("cs.dat")
+  let sec= Array{Float64}(undef, length(ene))*0
+   if (Z==5 && A==10)
+    name= "B10" 
+    sec += CS["sigma_C12_$name"] .*q_inj(12,6,ene,param["ab_c"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_N14_$name"] .*q_inj(14,7,ene,param["ab_n"],param["nu_cno"],param["r_cut"])
+    sec +=  CS["sigma_O16_$name"] .*q_inj(16,8,ene,param["ab_o"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"] .*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+   elseif (Z==5 && A==11) 
+    name= "B11" 
+    sec += CS["sigma_C12_$name"].*q_inj(12,6,ene,param["ab_c"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_N14_$name"] .*q_inj(14,7,ene,param["ab_n"],param["nu_cno"],param["r_cut"])
+    sec +=  CS["sigma_O16_$name"] .*q_inj(16,8,ene,param["ab_o"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"].*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"].*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+   elseif (Z==9 && A==19)
+    name= "F19" 
+    sec += CS["sigma_Ne20_$name"].*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec +=CS["sigma_Ne22_$name"].*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"].*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+   elseif (Z==7 && A==14)
+    name= "N14" 
+    sec +=  CS["sigma_O16_$name"] .*q_inj(16,8,ene,param["ab_o"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+   elseif (Z==7 && A==15)
+    name= "N15" 
+    sec +=  CS["sigma_O16_$name"] .*q_inj(16,8,ene,param["ab_o"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+       elseif (Z==6 && A==12)
+    name= "C12" 
+        sec += CS["sigma_N14_$name"] .*q_inj(14,7,ene,param["ab_n"],param["nu_cno"],param["r_cut"])
+    sec +=  CS["sigma_O16_$name"] .*q_inj(16,8,ene,param["ab_o"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+       elseif (Z==6 && A==13)
+    name= "C13" 
+           sec += CS["sigma_N14_$name"] .*q_inj(14,7,ene,param["ab_n"],param["nu_cno"],param["r_cut"])
+    sec +=  CS["sigma_O16_$name"] .*q_inj(16,8,ene,param["ab_o"],param["nu_cno"],param["r_cut"])
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+            elseif (Z==8 && A==16)
+    name= "O16" 
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+                elseif (Z==8 && A==17)
+    name= "O17" 
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+                elseif (Z==8 && A==18)
+    name= "O18" 
+    sec += CS["sigma_Ne20_$name"] .*q_inj(20,10,ene,param["ab_ne"],param["nu_nemgsi"],param["r_cut"])
+    sec += CS["sigma_Ne22_$name"] .*q_inj(22,10,ene,param["ab_ne2"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Mg24_$name"] .*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+        sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+                elseif (Z==10 && A==20)
+    name= "Ne20" 
+    sec +=  CS["sigma_Mg24_$name"].*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+    elseif (Z==10 && A==21)
+    name= "Ne21" 
+    sec +=  CS["sigma_Mg24_$name"].*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                    elseif (Z==10 && A==22)
+    name= "Ne22" 
+    sec +=  CS["sigma_Mg24_$name"].*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Na23_$name"].*q_inj(23,11,ene,param["ab_na"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                    elseif (Z==11 && A==23)
+    name= "Na23" 
+    sec +=  CS["sigma_Mg24_$name"].*q_inj(24,12,ene,param["ab_mg"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                    elseif (Z==12 && A==24)
+    name= "Mg24" 
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                        elseif (Z==12 && A==25)
+    name= "Mg25" 
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                        elseif (Z==12 && A==26)
+    name= "Mg26" 
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Al27_$name"] .*q_inj(27,13,ene,param["ab_al"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                        elseif (Z==13 && A==26)
+    name= "Al26" 
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                            elseif (Z==13 && A==27)
+    name= "Al27" 
+    sec +=  CS["sigma_Si28_$name"].*q_inj(28,14,ene,param["ab_si"],param["nu_nemgsi"],param["r_cut"])
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                            elseif (Z==14 && A==28)
+    name= "Si28" 
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                                elseif (Z==14 && A==29)
+    name= "Si29" 
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+                                elseif (Z==14 && A==30)
+    name= "Si30" 
+    sec +=  CS["sigma_Fe56_$name"] .*q_inj(56,26,ene,param["ab_fe"],param["nu_fe"],param["r_cut"])
+   end
+   if (Z>8 && Z<26)
+    sec*=1.1                #considering higher Z contribution
+   end
+   return sec*DEN_H*MBARN .*beta*VELOCITY_LIGHT
+  end
+end
+function get_param(fname::String)
+  result = Dict{String, Float64}()
+  key = ""
+  open(fname) do file
+    while !eof(file)
+      line = readline(file)
+      for i=1:length(line)
+        if line[i] == '='
+         key = line[1:i-1]
+       #  result[key] = Float64()
+         result[key] = parse(Float64, line[i+1:length(line)])
+        end
+      end
+    end
+  end
+  result
+end
+function get_cs(fname::String)
+  basedir = dirname(@__FILE__)
+  result = Dict{String, Array{Float64,1}}()
+  key = ""
+  open("$basedir/$fname") do file
+    while !eof(file)
+      line = readline(file)
+      if line[1] == '#'
+        key = line[2:length(line)]
+        result[key] = Array{Float64,1}(undef, 0)
+      else
+        if (key != "")
+          lvec = map(x->parse(Float64, x), split(line))
+          result[key] = lvec
+        end
+      end
+    end
+  end
+  result
 end
 
 purety(0)
