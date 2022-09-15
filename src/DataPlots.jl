@@ -406,9 +406,10 @@ end
 * `phi`:     modulation potential [unit: GV]
 * `data`:    The dataset to plot
 """
-function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"])
+function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"],k::Real = 1)
+ k != 1 && (label.*=",k="*string(k))
   plot_comparison(spec -> rescale(spec["Hydrogen_1"]+spec["Hydrogen_2"]+spec["secondary_protons"] , 2.7) * 1e4,
-                  spectra, label; phi=phi, data=data, datafile="proton.dat", index=0,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
+                  spectra, label; phi=phi, data=data, datafile="proton.dat", index=0,norm=k,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
 
 function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017heliumrigidity(2011/05/19-2016/05/26)"],k::Real = 1)
