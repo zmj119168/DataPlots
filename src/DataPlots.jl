@@ -194,11 +194,11 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
 end
 
 function plot_data(data::Array{T,2} where { T <: Real },label::String)
-  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label,gridalpha=0.5,gridstyle=:dash,thickness_scaling = 2)
+  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2)
 end
 
 function plot_data!(data::Array{T,2} where { T <: Real },label::String,mar::Symbol)
-  scatter!(data[:,1], data[:,2]; yerror=data[:,3], label=label,gridalpha=0.5,gridstyle=:dash,thickness_scaling = 2,marker=mar,markersize = 5)
+  scatter!(data[:,1], data[:,2]; yerror=data[:,3], label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,marker=mar,markersize = 5)
 end
 
 function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
@@ -359,38 +359,38 @@ function plot_BeB(spectra::Array{Dict{String,Particle},1}, label::Array{String,2
                   spectra, label; phi=phi, data=data, datafile="bebratio.dat", ylabel="Be/B ratio")
 end
 
-function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0));a::String="fe",b::String="o", phi::Real = 0, data::Array{String,1}=["ams"],k::Real = 1)
+function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0));a::String="Fe",b::String="O", phi::Real = 0, data::Array{String,1}=["ams"],k::Real = 1)
  ylabel=a*"/"*b
  data=(data==["rigidity"] ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : 
        data==["ekin"] ? ["HEAO3-C2(Fe/O)(1979/10-1980/06)"] : data)
  if data==["ams"]
-   data=(ylabel=="na/si" ? ["AMS2021(Na/Si)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="al/si" ? ["AMS2021(Al/Si)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="na/f" ? ["AMS2021(Na/F)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="al/f" ? ["AMS2021(Al/F)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="fe/o" ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="fe/he" ? ["AMS2021(Fe/He)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="fe/si" ? ["AMS2021(Fe/Si)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="ne/mg" ? ["AMS2020(Ne/Mg)rigidity(2011/05-2018/05)"] : 
-   ylabel=="b/o" ? ["AMS2018(B/O)rigidity(2011/05-2016/05)"] : 
-   ylabel=="be/c" ? ["AMS2018(Be/C)rigidity(2011/05-2016/05)"] : 
-   ylabel=="be/o" ? ["AMS2018(Be/O)rigidity(2011/05-2016/05)"] : 
-   ylabel=="c/o" ? ["AMS2020(C/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="he/o" ? ["AMS2020(He/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="li/b" ? ["AMS2018(Li/B)rigidity(2011/05-2016/05)"] : 
-   ylabel=="li/c" ? ["AMS2020(Li/C)rigidity(2011/05-2018/05)"] : 
-   ylabel=="li/o" ? ["AMS2020(Li/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="mg/o" ? ["AMS2020(Mg/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="n/b" ? ["AMS2020(N/B)rigidity(2011/05-2018/05)"] : 
-   ylabel=="n/o" ? ["AMS2020(N/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="ne/o" ? ["AMS2020(Ne/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="si/mg" ? ["AMS2020(Si/Mg)rigidity(2011/05-2018/05)"] : 
-   ylabel=="si/o" ? ["AMS2020(Si/O)rigidity(2011/05-2018/05)"] : 
-   ylabel=="f/si" ? ["AMS2021(F/Si)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="f/b" ? ["AMS2021(F/B)rigidity(2011/05/19-2019/10/30)"] : 
-   ylabel=="p/he" ? ["AMS2020(P/He)rigidity(2011/05-2018/05)"] : 
-         ylabel=="b/c" ? ["AMS02(B/C)rigidity(2011/05-2016/05)SM3300"] : 
-         ylabel=="be/b" ? ["AMS02(Be/B)rigidity(2011/05-2016/05)"] : 
+   data=(ylabel=="Na/Si" ? ["AMS2021(Na/Si)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Al/Si" ? ["AMS2021(Al/Si)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Na/F" ? ["AMS2021(Na/F)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Al/F" ? ["AMS2021(Al/F)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Fe/O" ? ["AMS2021(Fe/O)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Fe/He" ? ["AMS2021(Fe/He)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Fe/Si" ? ["AMS2021(Fe/Si)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="Ne/Mg" ? ["AMS2020(Ne/Mg)rigidity(2011/05-2018/05)"] : 
+   ylabel=="B/O" ? ["AMS2018(B/O)rigidity(2011/05-2016/05)"] : 
+   ylabel=="Be/C" ? ["AMS2018(Be/C)rigidity(2011/05-2016/05)"] : 
+   ylabel=="Be/O" ? ["AMS2018(Be/O)rigidity(2011/05-2016/05)"] : 
+   ylabel=="C/O" ? ["AMS2020(C/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="He/O" ? ["AMS2020(He/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="Li/B" ? ["AMS2018(Li/B)rigidity(2011/05-2016/05)"] : 
+   ylabel=="Li/C" ? ["AMS2020(Li/C)rigidity(2011/05-2018/05)"] : 
+   ylabel=="Li/O" ? ["AMS2020(Li/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="Mg/O" ? ["AMS2020(Mg/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="N/B" ? ["AMS2020(N/B)rigidity(2011/05-2018/05)"] : 
+   ylabel=="N/O" ? ["AMS2020(N/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="Ne/O" ? ["AMS2020(Ne/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="Si/Mg" ? ["AMS2020(Si/Mg)rigidity(2011/05-2018/05)"] : 
+   ylabel=="Si/O" ? ["AMS2020(Si/O)rigidity(2011/05-2018/05)"] : 
+   ylabel=="F/Si" ? ["AMS2021(F/Si)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="F/B" ? ["AMS2021(F/B)rigidity(2011/05/19-2019/10/30)"] : 
+   ylabel=="p/He" ? ["AMS2020(P/He)rigidity(2011/05-2018/05)"] : 
+         ylabel=="B/C" ? ["AMS02(B/C)rigidity(2011/05-2016/05)SM3300"] : 
+         ylabel=="Be/B" ? ["AMS02(Be/B)rigidity(2011/05-2016/05)"] : 
          ylabel=="e+/eall" ? ["AMS2019fraction(2011/05/19-2017/11/12)"] : data)
  end
   _func(x)=fun_ratio(x,a=a,b=b)*k
@@ -555,30 +555,30 @@ function plot_he34(spectra::Array{Dict{String,Particle},1}, label::Array{String,
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="heratio.dat", ylabel="\$\\rm ^{3}He/^{4}He\\ ratio\$")
 end
 
-function fun_ratio(spec::Dict{String,Particle};a::String="fe",b::String="o")
+function fun_ratio(spec::Dict{String,Particle};a::String="Fe",b::String="O")
    return fun_particle(spec,a)/fun_particle(spec,b)
 end
 function fun_particle(spec::Dict{String,Particle},a::String)
    list= (a=="p" ? ["Hydrogen_1","Hydrogen_2","secondary_protons"] : 
           a=="e+" ? ["secondary_positrons","primary_positrons"] : 
           a=="eall" ? ["primary_electrons","secondary_electrons","secondary_positrons","primary_positrons"] : 
-          a=="he" ? ["Helium_3" , "Helium_4"] : 
-          a=="li" ? ["Lithium_6" , "Lithium_7"] : 
-          a=="be" ? ["Beryllium_7" , "Beryllium_9","Beryllium_10"] : 
-          a=="b" ? ["Boron_10" , "Boron_11"] : 
-          a=="c" ? ["Carbon_12" , "Carbon_13"] : 
-          a=="n" ? ["Nitrogen_14" , "Nitrogen_15"] : 
-          a=="o" ? ["Oxygen_16" , "Oxygen_17","Oxygen_18"] : 
-          a=="f" ? ["Fluorine_19"] : 
-          a=="ne" ? ["Neon_20" , "Neon_21","Neon_22"] : 
-          a=="mg" ? ["Magnesium_24" , "Magnesium_25","Magnesium_26"] : 
-          a=="si" ? ["Silicon_28" , "Silicon_29","Silicon_30"] : 
-          a=="na" ? ["Sodium_23"] : 
-          a=="al" ? ["Aluminium_26" , "Aluminium_27"] :  
-          a=="fe" ? ["Iron_54" , "Iron_56","Iron_57","Iron_58"] : 
-          a=="22ne" ? ["Neon_22"] :  
-          a=="21ne" ? ["Neon_21"] :  
-          a=="20ne" ? ["Neon_20"] : ["Hydrogen_1","Hydrogen_2","secondary_protons"] )
+          a=="He" ? ["Helium_3" , "Helium_4"] : 
+          a=="Li" ? ["Lithium_6" , "Lithium_7"] : 
+          a=="Be" ? ["Beryllium_7" , "Beryllium_9","Beryllium_10"] : 
+          a=="B" ? ["Boron_10" , "Boron_11"] : 
+          a=="C" ? ["Carbon_12" , "Carbon_13"] : 
+          a=="N" ? ["Nitrogen_14" , "Nitrogen_15"] : 
+          a=="O" ? ["Oxygen_16" , "Oxygen_17","Oxygen_18"] : 
+          a=="F" ? ["Fluorine_19"] : 
+          a=="Ne" ? ["Neon_20" , "Neon_21","Neon_22"] : 
+          a=="Mg" ? ["Magnesium_24" , "Magnesium_25","Magnesium_26"] : 
+          a=="Si" ? ["Silicon_28" , "Silicon_29","Silicon_30"] : 
+          a=="Na" ? ["Sodium_23"] : 
+          a=="Al" ? ["Aluminium_26" , "Aluminium_27"] :  
+          a=="Fe" ? ["Iron_54" , "Iron_56","Iron_57","Iron_58"] : 
+          a=="22Ne" ? ["Neon_22"] :  
+          a=="21Ne" ? ["Neon_21"] :  
+          a=="20Ne" ? ["Neon_20"] : ["Hydrogen_1","Hydrogen_2","secondary_protons"] )
    return sum([spec[list[i]] for i=1:length(list)])
 end
 #############################################################
