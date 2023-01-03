@@ -455,7 +455,7 @@ end
             phi::Real = 0, data::Array{String,1})  
 
     Ploting all particles flux in comparison with the data,in Etot(=Ekin/n*A+m0*A)
-
+      SIBYLL model seems to be favoured
 # Arguments
 * `data`:    The dataset to plot
 """
