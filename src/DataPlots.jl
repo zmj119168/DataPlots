@@ -442,11 +442,13 @@ function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{St
   data=(data==["li"] ? ["AMS2017lithiumrigidity(2011/05/19-2016/05/26)"] : 
         data==["be"] ? ["AMS2017berylliumrigidity(2011/05/19-2016/05/26)"] :
         data==["b"]  ? ["AMS2017boronrigidity(2011/05/19-2016/05/26)"] : 
-        data==["f"]  ? ["AMS2021fluorinerigidity(2011/05-2019/10)"] : data)
+        data==["f"]  ? ["AMS2021fluorinerigidity(2011/05-2019/10)"] : 
+        data==["d"]  ? ["PAMELA-TOFdeuteron(2006/07-2007/12)"] : data)
   _func=(occursin("lithium", data[1])  ? spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 : 
          occursin("beryllium", data[1]) ? spec -> rescale(spec["Beryllium_7"] + spec["Beryllium_9"] + spec["Beryllium_10"], 2.7) * 1e4 :
          occursin("boron", data[1])    ? spec -> rescale(spec["Boron_10"] + spec["Boron_11"], 2.7) * 1e4 : 
-         occursin("fluorine", data[1])    ? spec -> rescale(spec["Fluorine_19"], 2.7) * 1e4 : spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 )
+         occursin("fluorine", data[1])    ? spec -> rescale(spec["Fluorine_19"], 2.7) * 1e4 : 
+         occursin("deuteron", data[1])    ? spec -> rescale(spec["Hydrogen_2"], 2.7) * 1e4 : spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 )
           k != 1 && (label.*=",k="*string(k))
   plot_comparison(_func,spectra, label; phi=phi, data=data, datafile="secondary.dat", index=-2.7,norm=k,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
