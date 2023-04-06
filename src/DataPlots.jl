@@ -463,13 +463,23 @@ end
 * `data`:    The dataset to plot
 """
 function plot_all(spectra::Dict{String,Particle}, label::Array{String,2} = Array{String,2}(undef, (0,0));  data::Array{String,1}=[""])
- m0 = 0.9382
-  eaxis=spectra["Hydrogen_1"].Ekin
+   phe= occursin("p+He", data[1])  ? 1 : 0
+   m0 = 0.9382
+   eaxis=spectra["Hydrogen_1"].Ekin
     tot_spec = Dict{String,Array{T,1} where {T<:Real}}()
-  for k in keys(spectra)
-   if spectra[k].A>0
-    fun =  inter_fun((spectra[k].Ekin.+m0)*spectra[k].A,spectra[k].dNdE*1e4/spectra[k].A)
-    tot_spec[k]=fun.(spectra[k].Ekin)
+  if(phe==1)
+     for k in keys(spectra)
+      if spectra[k].A>0&&(spectra[k].Z==1||spectra[k].Z==2)
+       fun =  inter_fun((spectra[k].Ekin.+m0)*spectra[k].A,spectra[k].dNdE*1e4/spectra[k].A)
+       tot_spec[k]=fun.(spectra[k].Ekin)
+       end
+     end
+  else
+   for k in keys(spectra)
+    if spectra[k].A>0
+     fun =  inter_fun((spectra[k].Ekin.+m0)*spectra[k].A,spectra[k].dNdE*1e4/spectra[k].A)
+     tot_spec[k]=fun.(spectra[k].Ekin)
+    end
    end
   end
    specall=[sum([tot_spec[k][n] for k in keys(tot_spec)]) for n=1:length(eaxis)]
