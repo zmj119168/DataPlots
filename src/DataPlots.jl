@@ -12,6 +12,8 @@ export plot_pbarp
 export plot_he
 export plot_he34
 export plot_be109
+export plot_all
+export dict_bump
 export modulation
 export +
 export /
@@ -194,11 +196,11 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
 end
 
 function plot_data(data::Array{T,2} where { T <: Real },label::String)
-  plot(data[:,1], data[:,2]; yerror=data[:,3], linewidth=0, marker=:dot, label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2)
+  plot(data[:,1], data[:,2]; yerror=(min.(data[:,3],data[:,2].*0.999),data[:,3]), linewidth=0, marker=:dot, label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,markersize = 8)
 end
 
 function plot_data!(data::Array{T,2} where { T <: Real },label::String,mar::Symbol)
-  scatter!(data[:,1], data[:,2]; yerror=data[:,3], label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,marker=mar,markersize = 5)
+  scatter!(data[:,1], data[:,2]; yerror=(min.(data[:,3],data[:,2]*0.999),data[:,3]), label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,marker=mar,markersize = 8)
 end
 
 function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
@@ -248,7 +250,7 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   plot!(xscale=xscale, xlabel=whole_ekin ? "Kinetic Energy per nucleon[GeV/n]" : "Rigidity R[GV]", yscale=yscale, ylabel=whole_ekin ? ylabel : replace(replace(ylabel,"(GeV/n)"=>"GV"),"E"=>"R"))
 
   mod_spectra = map(spec->dict_modulation(spec,phi;phi0=phi0), spectra)
-  lis=palette(:tab)
+  lis=palette(:tab20)
   n=length(lis)
   for i in 1:length(mod_spectra)
     ptc = plot_func(mod_spectra[i])*norm
@@ -408,11 +410,13 @@ end
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"],k::Real = 1)
  k != 1 && (label.*=",k="*string(k))
+ #["DAMPE2019(2016/01/01-2018/06/30)","CALET(2015/10-2021/12)","CREAM-I+III(2004+2007)","TUNKA-133ArrayQGSJet01(2009/10-2012/04)","NUCLEON-KLEM(2015/07-2017/06)","RUNJOB(2005)","IceCube-IceTop(2019)","KG(2013)","KG_SIBYLL-23(2017)","KAS_SIBYLL-21(2011)","KAS_EPOS-199(2011)","KAS_QGSjet-II-02(2011)"]
   plot_comparison(spec -> rescale(spec["Hydrogen_1"]+spec["Hydrogen_2"]+spec["secondary_protons"] , 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", index=0,norm=k,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
 
 function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017heliumrigidity(2011/05/19-2016/05/26)"],k::Real = 1)
+#["CREAM2017helium(2007/12-2008/01)","DAMPE2021helium(2016/01/01-2020/06/30)","AMS2017helium(2011/05-2018/05)","AMS2017helium(2011/05/19-2016/05/26)","NUCLEON-KLEMhelium(2015/07-2017/06)","NUCLEON-IChelium(2015/07-2017/06)","ICE-Cubehelium(2019)","TUNKA-133-QGSJet01helium(2009/10-2012/04)","KAS_QGSjet01helium(2011)","KAS_QGSjet01helium(2005)","KAS_SIBYLL21helium(2005)","KG_helium(2013)"]
   data=(data==["he"] ? ["AMS02heliumrigidity(2011/05-2018/05)"] : 
         data==["c"]  ? ["AMS2017carbonrigidity(2011/05/19-2016/05/26)"] :
         data==["o"]  ? ["AMS2017oxygenrigidity(2011/05/19-2016/05/26)"] :
@@ -462,28 +466,20 @@ end
 # Arguments
 * `data`:    The dataset to plot
 """
-function plot_all(spectra::Dict{String,Particle}, label::Array{String,2} = Array{String,2}(undef, (0,0));  data::Array{String,1}=[""])
+function plot_all(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=[""])
+#["Ice-Cube(2019)","Ice-Top_SIB(2020)","Ice-Top_QGS(2020)","KG_SIBYLL-23(2017)","KAS+KG_QGSjet-II-04(2015)","NUCLEON-KLEM(2015/07-2017/06)","PierreAuger-SD750(2021)","TAHybrid(2008/01-2015/05)","TUNKA-133(2020)","TibetQGS+HD(2008)","HAWC(2021)","GAMMA(2014)"]
+#["DAMPE2023(p+He)","ARGO-YBJ+WFCT2015(p+He)","HAWC2022(p+He)","EAS-TOP+MACRO2004(p+He)","AMS2017(p+He)(2011/05-2018/05)","KASCADE2005(p+He)","Maket-ANI(p+He)2007","KAS+KG_QGSjet-II-04(p+He)2015","CREAM(p+He)(2004-2005)"]
+   mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
    phe= occursin("p+He", data[1])  ? 1 : 0
-   m0 = 0.9382
-   eaxis=spectra["Hydrogen_1"].Ekin
-    tot_spec = Dict{String,Array{T,1} where {T<:Real}}()
-  if(phe==1)
-     for k in keys(spectra)
-      if spectra[k].A>0&&(spectra[k].Z==1||spectra[k].Z==2)
-       fun =  inter_fun((spectra[k].Ekin.+m0)*spectra[k].A,spectra[k].dNdE*1e4/spectra[k].A)
-       tot_spec[k]=fun.(spectra[k].Ekin)
-       end
-     end
-  else
-   for k in keys(spectra)
-    if spectra[k].A>0
-     fun =  inter_fun((spectra[k].Ekin.+m0)*spectra[k].A,spectra[k].dNdE*1e4/spectra[k].A)
-     tot_spec[k]=fun.(spectra[k].Ekin)
-    end
-   end
+   m0 = 0.9382   
+   pdata = get_data("allparticles.dat"; index=-2.6, norm=1)
+     if phi==0 
+    label=["LIS"]
+  else label.*=",phi="*string(phi)
   end
-   specall=[sum([tot_spec[k][n] for k in keys(tot_spec)]) for n=1:length(eaxis)]
-    pdata = get_data("allparticles.dat"; index=-2.6, norm=1)
+  if spectra[1]["Hydrogen_1"].dNdE[1]==0
+   label=""
+  end
     if pure<1
      markers = filter((m->begin
                  m in Plots.supported_markers()
@@ -499,7 +495,34 @@ function plot_all(spectra::Dict{String,Particle}, label::Array{String,2} = Array
        plot_data!(pdata[k], k,mar_typ)
      end
     end
-  plot!(eaxis,specall.*eaxis.^2.6,xscale=:log10,yscale=:log10)
+   
+    for i in 1:length(mod_spectra)
+   tot_spec = Dict{String,Array{T,1} where {T<:Real}}()
+   mspec=mod_spectra[i]
+    eaxis=mspec["Hydrogen_1"].Ekin
+  if(phe==1)
+     for k in keys(mspec)
+      if mspec[k].A>0&&(mspec[k].Z==1||mspec[k].Z==2)
+       fun =  inter_fun((mspec[k].Ekin.+m0)*mspec[k].A,mspec[k].dNdE*1e4/mspec[k].A)
+       tot_spec[k]=fun.(mspec[k].Ekin)
+       end
+     end
+  else
+   for k in keys(mspec)
+    if mspec[k].A>0
+     fun =  inter_fun((mspec[k].Ekin.+m0)*mspec[k].A,mspec[k].dNdE*1e4/mspec[k].A)
+     tot_spec[k]=fun.(mspec[k].Ekin)
+    end
+   end 
+  end
+    specall=[sum([tot_spec[k][n] for k in keys(tot_spec)]) for n=1:length(eaxis)]
+   if phi==0 
+    plot!(eaxis, specall.*eaxis.^2.6; label = i<=length(label) ? label[1,i] : "",line=(:dot,1.5),framestyle =:box)#,palette=[lis[n-i]])
+    else 
+    plot!(eaxis, specall.*eaxis.^2.6; label = i<=length(label) ? label[1,i] : "",w=1,framestyle =:box)#,palette=[lis[n-i]])
+    end  
+  end 
+  plot!(xscale=:log10,yscale=:log10, w=1,framestyle =:box,xlabel="Total Energy [GeV]" ,ylabel="\$\\rm E^{2.6}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV)^{1.6}]\$")
 end
 
 function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2019electron(2011/05/19-2017/11/12)"],k::Real = 1)
@@ -635,7 +658,9 @@ end
 function bump(rigidity::Array{T,1} where {T<:Real}, flux::Array{T,1} where {T<:Real},R0::Real, RL::Real,q::Real)
   gamma=-fitting([log10.(rigidity) log10.(flux)])[1]
 
-  (rigidity[4:size(rigidity,1)-3],abs.(flux[4:size(rigidity,1)-3].*((gamma.+2)./(q.-gamma).*exp.(-(R0./rigidity[4:size(rigidity,1)-3]).^0.5-(rigidity[4:size(rigidity,1)-3]/RL).^0.5).+1))) 
+  fun =  inter_fun(rigidity[4:length(rigidity)-3],max.(gamma,0.01))
+  gamma=fun.(rigidity)
+  (rigidity,abs.(flux.*((gamma.+2)./(q.-gamma).*exp.(-(R0./rigidity).^0.5-(rigidity/RL).^0.5).+1))) 
 end
 
 function bump(particle::Particle, R0::Real, RL::Real,q::Real)
@@ -657,7 +682,7 @@ end
 function fitting(xydata::Array{T,2} where { T <: Real })
   @. model(x, p) = p[1]*x+p[2]
   p0 = [-2.6, 1e1]
- ([coef(curve_fit(model, xydata[k-3:k+3,1], xydata[k-3:k+3,2], p0))[1] for k=4:size(xydata,1)-3],[stderror(curve_fit(model, xydata[k-3:k+3,1], xydata[k-3:k+3,2], p0))[1] for k=4:size(xydata,1)-3])
+  ([coef(curve_fit(model, xydata[k-3:k+3,1], xydata[k-3:k+3,2], p0))[1] for k=4:size(xydata,1)-3],[stderror(curve_fit(model, xydata[k-3:k+3,1], xydata[k-3:k+3,2], p0))[1] for k=4:size(xydata,1)-3])
 end
 """
   use pure=1 to turn off experiments
