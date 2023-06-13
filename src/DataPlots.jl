@@ -410,13 +410,13 @@ end
 """
 function plot_proton(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS02rigidity(2011/05-2018/05)"],k::Real = 1)
  k != 1 && (label.*=",k="*string(k))
- #["DAMPE2019(2016/01/01-2018/06/30)","CALET(2015/10-2021/12)","CREAM-I+III(2004+2007)","TUNKA-133ArrayQGSJet01(2009/10-2012/04)","NUCLEON-KLEM(2015/07-2017/06)","RUNJOB(2005)","IceCube-IceTop(2019)","KG(2013)","KG_SIBYLL-23(2017)","KAS_SIBYLL-21(2011)","KAS_EPOS-199(2011)","KAS_QGSjet-II-02(2011)"]
+ #["AMS02(2011/05-2018/05)","DAMPE2019(2016/01/01-2018/06/30)","CALET(2015/10-2021/12)","CREAM-I+III(2004+2007)","NUCLEON-KLEM(2015/07-2017/06)","TUNKA-133ArrayQGSJet01(2009/10-2012/04)","IceCube-IceTop(2019)","KG(2013)","KG_SIBYLL-23(2017)","KAS_SIBYLL-21(2011)","KAS_EPOS-199(2011)","KAS_QGSjet-II-02(2011)"]
   plot_comparison(spec -> rescale(spec["Hydrogen_1"]+spec["Hydrogen_2"]+spec["secondary_protons"] , 2.7) * 1e4,
                   spectra, label; phi=phi, data=data, datafile="proton.dat", index=0,norm=k,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
 
 function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017heliumrigidity(2011/05/19-2016/05/26)"],k::Real = 1)
-#["CREAM2017helium(2007/12-2008/01)","DAMPE2021helium(2016/01/01-2020/06/30)","AMS2017helium(2011/05-2018/05)","AMS2017helium(2011/05/19-2016/05/26)","NUCLEON-KLEMhelium(2015/07-2017/06)","NUCLEON-IChelium(2015/07-2017/06)","ICE-Cubehelium(2019)","TUNKA-133-QGSJet01helium(2009/10-2012/04)","KAS_QGSjet01helium(2011)","KAS_QGSjet01helium(2005)","KAS_SIBYLL21helium(2005)","KG_helium(2013)"]
+#["AMS2017helium(2011/05-2018/05)","DAMPE2021helium(2016/01/01-2020/06/30)","CALEThelium(2015/10-2022/04)","CREAM2017helium(2007/12-2008/01)","NUCLEON-KLEMhelium(2015/07-2017/06)","TUNKA-133-QGSJet01helium(2009/10-2012/04)","ICE-Cubehelium(2019)","KG_helium(2013)","KAS_QGSjet01helium(2011)","KAS_QGSjet01helium(2005)","KAS_SIBYLL21helium(2005)"]
   data=(data==["he"] ? ["AMS02heliumrigidity(2011/05-2018/05)"] : 
         data==["c"]  ? ["AMS2017carbonrigidity(2011/05/19-2016/05/26)"] :
         data==["o"]  ? ["AMS2017oxygenrigidity(2011/05/19-2016/05/26)"] :
@@ -426,6 +426,7 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
 		data==["si"]  ? ["AMS2020siliconrigidity(2011/05/19-2018/05/26)"] :
 		data==["na"]  ? ["AMS2021sodiumrigidity(2011/05/19-2019/10/30)"] :
 		data==["al"]  ? ["AMS2021aluminiumrigidity(2011/05/19-2019/10/30)"] :
+		data==["s"]  ? ["AMS2023sulfurrigidity(2011/05-2021/05)"] :
 		data==["fe"]  ? ["AMS2021ironrigidity(2011/05/19-2019/10/30)"] : data)
   _func=(occursin("helium", data[1])  ? spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4 : 
          occursin("carbon", data[1])  ? spec -> rescale(spec["Carbon_12"] + spec["Carbon_13"], 2.7) * 1e4 :
@@ -435,7 +436,8 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
 		 occursin("magnesium", data[1]) ? spec ->rescale(spec["Magnesium_24"] + spec["Magnesium_25"] + spec["Magnesium_26"], 2.7) * 1e4 :
 		 occursin("silicon", data[1]) ? spec ->rescale(spec["Silicon_28"] + spec["Silicon_29"] + spec["Silicon_30"], 2.7) * 1e4 : 
 		 occursin("sodium", data[1]) ? spec ->rescale(spec["Sodium_23"] , 2.7) * 1e4 : 
-		 occursin("aluminium", data[1]) ? spec ->rescale(spec["Aluminium_26"] + spec["Aluminium_27"], 2.7) * 1e4 : 		 
+		 occursin("aluminium", data[1]) ? spec ->rescale(spec["Aluminium_26"] + spec["Aluminium_27"], 2.7) * 1e4 : 
+		 occursin("sulfur", data[1]) ? spec ->rescale(spec["Sulphur_32"] + spec["Sulphur_33"]+spec["Sulphur_34"], 2.7) * 1e4 : 		 
 		 occursin("iron", data[1]) ? spec ->rescale(spec["Iron_54"] + spec["Iron_56"] + spec["Iron_57"]+spec["Iron_58"], 2.7) * 1e4 :
 		 occursin("nickel", data[1]) ? spec ->rescale(spec["Nickel_56"] + spec["Nickel_58"] + spec["Nickel_59"]+ spec["Nickel_60"]+ spec["Nickel_61"]+ spec["Nickel_62"]+ spec["Nickel_64"], 2.7) * 1e4 : spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4)
 		 k != 1 && (label.*=",k="*string(k))
@@ -445,11 +447,17 @@ end
 function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=["AMS2017lithiumrigidity(2011/05/19-2016/05/26)"],k::Real = 1)
   data=(data==["li"] ? ["AMS2017lithiumrigidity(2011/05/19-2016/05/26)"] : 
         data==["be"] ? ["AMS2017berylliumrigidity(2011/05/19-2016/05/26)"] :
+        data==["be9"] ? ["AMS2023be9pre"] :
+        data==["be10"] ? ["AMS2023be10pre"] :
+        data==["be7"] ? ["AMS2023be7pre"] :
         data==["b"]  ? ["AMS2017boronrigidity(2011/05/19-2016/05/26)"] : 
         data==["f"]  ? ["AMS2021fluorinerigidity(2011/05-2019/10)"] : 
         data==["d"]  ? ["PAMELA-TOFdeuteron(2006/07-2007/12)"] : data)
   _func=(occursin("lithium", data[1])  ? spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 : 
          occursin("beryllium", data[1]) ? spec -> rescale(spec["Beryllium_7"] + spec["Beryllium_9"] + spec["Beryllium_10"], 2.7) * 1e4 :
+         occursin("be9", data[1]) ? spec -> rescale(spec["Beryllium_9"], 2.7) * 1e4 :
+         occursin("be10", data[1]) ? spec -> rescale(spec["Beryllium_10"], 2.7) * 1e4 :
+         occursin("be7", data[1]) ? spec -> rescale(spec["Beryllium_7"], 2.7) * 1e4 :
          occursin("boron", data[1])    ? spec -> rescale(spec["Boron_10"] + spec["Boron_11"], 2.7) * 1e4 : 
          occursin("fluorine", data[1])    ? spec -> rescale(spec["Fluorine_19"], 2.7) * 1e4 : 
          occursin("deuteron", data[1])    ? spec -> rescale(spec["Hydrogen_2"], 2.7) * 1e4 : spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 )
@@ -467,8 +475,8 @@ end
 * `data`:    The dataset to plot
 """
 function plot_all(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0, data::Array{String,1}=[""])
-#["Ice-Cube(2019)","Ice-Top_SIB(2020)","Ice-Top_QGS(2020)","KG_SIBYLL-23(2017)","KAS+KG_QGSjet-II-04(2015)","NUCLEON-KLEM(2015/07-2017/06)","PierreAuger-SD750(2021)","TAHybrid(2008/01-2015/05)","TUNKA-133(2020)","TibetQGS+HD(2008)","HAWC(2021)","GAMMA(2014)"]
-#["DAMPE2023(p+He)","ARGO-YBJ+WFCT2015(p+He)","HAWC2022(p+He)","EAS-TOP+MACRO2004(p+He)","AMS2017(p+He)(2011/05-2018/05)","KASCADE2005(p+He)","Maket-ANI(p+He)2007","KAS+KG_QGSjet-II-04(p+He)2015","CREAM(p+He)(2004-2005)"]
+#["NUCLEON-KLEM(2015/07-2017/06)","HAWC(2021)","Ice-Cube(2019)","Ice-Top_SIB(2020)","Ice-Top_QGS(2020)","KAS_QGSjet01(2011)","KG_SIBYLL-23(2017)","KAS+KG_QGSjet-II-04(2015)","PierreAuger-SD750(2021)","TAHybrid(2008/01-2015/05)","TUNKA-133(2020)","TibetQGS+HD(2008)","GAMMA(2014)"]
+#["AMS2017(p+He)(2011/05-2018/05)","DAMPE2023(p+He)","CREAM(p+He)(2004-2005)","ARGO-YBJ+WFCT2015(p+He)","HAWC2022(p+He)","EAS-TOP+MACRO2004(p+He)","Maket-ANI(p+He)2007","KASCADE2005(p+He)","KAS+KG_QGSjet-II-04(p+He)2015"]
    mod_spectra = map(spec->dict_modulation(spec,phi), spectra)
    phe= occursin("p+He", data[1])  ? 1 : 0
    m0 = 0.9382   
