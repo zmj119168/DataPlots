@@ -196,11 +196,11 @@ function get_data(fname::String; index::Real = 0.0, norm::Real = 1.0)
 end
 
 function plot_data(data::Array{T,2} where { T <: Real },label::String)
-  plot(data[:,1], data[:,2]; yerror=(min.(data[:,3],data[:,2].*0.999),data[:,3]), linewidth=0, marker=:dot, label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,markersize = 8)
+  scatter(data[:,1], data[:,2]; yerror=(min.(data[:,3],data[:,2].*0.999),data[:,3]), linewidth=0, marker=:dot, label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,markersize = 5,markerstrokewidth=1)
 end
 
 function plot_data!(data::Array{T,2} where { T <: Real },label::String,mar::Symbol)
-  scatter!(data[:,1], data[:,2]; yerror=(min.(data[:,3],data[:,2]*0.999),data[:,3]), label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,marker=mar,markersize = 8)
+  scatter!(data[:,1], data[:,2]; yerror=(min.(data[:,3],data[:,2]*0.999),data[:,3]), label=label,gridalpha=0.3,gridstyle=:dash,thickness_scaling = 2,marker=mar,markersize = 5,markerstrokewidth=0.7)
 end
 
 function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, label::Array{String,2};
@@ -259,9 +259,9 @@ function plot_comparison(plot_func, spectra::Array{Dict{String,Particle},1}, lab
   #   plot!(ene, flux; alpha=0.1,color=color,label="",framestyle =:box)
    # else
    if phi==0 
-    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",line=(:dot,1.5),framestyle =:box)#,palette=[lis[n-i]])
+    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",line=(:dot,1.5),framestyle =:box,size=(1600,800))#,palette=[lis[n-i]])
     else 
-    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",w=1,framestyle =:box)#,palette=[lis[n-i]])
+    plot!(ene, flux; label = i<=length(label) ? label[1,i] : "",w=1,framestyle =:box,size=(1600,800))#,palette=[lis[n-i]])
     end
     
   end
@@ -374,7 +374,7 @@ function plot_ratio(spectra::Array{Dict{String,Particle},1}, label::Array{String
    ylabel=="Fe/He" ? ["AMS2021(Fe/He)rigidity(2011/05/19-2019/10/30)"] : 
    ylabel=="Fe/Si" ? ["AMS2021(Fe/Si)rigidity(2011/05/19-2019/10/30)"] : 
    ylabel=="Ne/Mg" ? ["AMS2020(Ne/Mg)rigidity(2011/05-2018/05)"] : 
-   ylabel=="B/O" ? ["AMS2018(B/O)rigidity(2011/05-2016/05)"] : 
+   ylabel=="B/O" ? ["AMS2018(B/O)rigidity(2011/05-2016/05)SM3300"] : 
    ylabel=="Be/C" ? ["AMS2018(Be/C)rigidity(2011/05-2016/05)"] : 
    ylabel=="Be/O" ? ["AMS2018(Be/O)rigidity(2011/05-2016/05)"] : 
    ylabel=="C/O" ? ["AMS2020(C/O)rigidity(2011/05-2018/05)"] : 
