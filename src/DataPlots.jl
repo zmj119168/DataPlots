@@ -471,6 +471,12 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
          occursin("carbon", data[1])  ? spec -> rescale(spec["Carbon_12"] + spec["Carbon_13"], 2.7) * 1e4 :
          occursin("oxygen", data[1])  ? spec ->rescale(spec["Oxygen_16"] + spec["Oxygen_17"] + spec["Oxygen_18"], 2.7) * 1e4 :
          occursin("nitrogen", data[1]) ? spec ->rescale(spec["Nitrogen_14"] + spec["Nitrogen_15"], 2.7) * 1e4 :
+         occursin("C12", data[1]) ? spec -> rescale(spec["Carbon_12"], 2.7) * 1e4 : occursin("C13", data[1]) ? spec -> rescale(spec["Carbon_13"], 2.7) * 1e4 :
+         occursin("N14", data[1]) ? spec -> rescale(spec["Nitrogen_14"], 2.7) * 1e4 : occursin("N15", data[1]) ? spec -> rescale(spec["Nitrogen_15"], 2.7) * 1e4 :
+         occursin("O16", data[1]) ? spec -> rescale(spec["Oxygen_16"], 2.7) * 1e4 : occursin("O17", data[1]) ? spec -> rescale(spec["Oxygen_17"], 2.7) * 1e4 : occursin("O18", data[1]) ? spec -> rescale(spec["Oxygen_18"], 2.7) * 1e4 :
+         occursin("Ne20", data[1]) ? spec -> rescale(spec["Neon_20"], 2.7) * 1e4 : occursin("Ne21", data[1]) ? spec -> rescale(spec["Neon_21"], 2.7) * 1e4 : occursin("Ne22", data[1]) ? spec -> rescale(spec["Neon_22"], 2.7) * 1e4 :
+         occursin("Mg24", data[1]) ? spec -> rescale(spec["Magnesium_24"], 2.7) * 1e4 : occursin("Mg25", data[1]) ? spec -> rescale(spec["Magnesium_25"], 2.7) * 1e4 : occursin("Mg26", data[1]) ? spec -> rescale(spec["Magnesium_26"], 2.7) * 1e4 :
+         occursin("Si28", data[1]) ? spec -> rescale(spec["Silicon_28"], 2.7) * 1e4 : occursin("Si29", data[1]) ? spec -> rescale(spec["Silicon_29"], 2.7) * 1e4 : occursin("Si30", data[1]) ? spec -> rescale(spec["Silicon_30"], 2.7) * 1e4 :
 		 occursin("neon", data[1]) ? spec ->rescale(spec["Neon_20"] + spec["Neon_21"] + spec["Neon_22"], 2.7) * 1e4 :
 		 occursin("magnesium", data[1]) ? spec ->rescale(spec["Magnesium_24"] + spec["Magnesium_25"] + spec["Magnesium_26"], 2.7) * 1e4 :
 		 occursin("silicon", data[1]) ? spec ->rescale(spec["Silicon_28"] + spec["Silicon_29"] + spec["Silicon_30"], 2.7) * 1e4 : 
@@ -478,42 +484,46 @@ function plot_primary(spectra::Array{Dict{String,Particle},1}, label::Array{Stri
 		 occursin("aluminium", data[1]) ? spec ->rescale(spec["Aluminium_26"] + spec["Aluminium_27"], 2.7) * 1e4 : 
 		 occursin("sulfur", data[1]) ? spec ->rescale(spec["Sulphur_32"] + spec["Sulphur_33"]+spec["Sulphur_34"], 2.7) * 1e4 : 
 		 occursin("argon", data[1]) ? spec ->rescale(spec["Argon_36"] + spec["Argon_37"]+spec["Argon_38"]+spec["Argon_40"], 2.7) * 1e4 : 
-		 occursin("calcium", data[1]) ? spec ->rescale(spec["Calcium_40"] + spec["Calcium_41"]+spec["Calcium_42"]+spec["Calcium_43"] + spec["Calcium_44"]+spec["Calcium_46"]+spec["Calcium_48"], 2.7) * 1e4 : 		 
+		 occursin("calcium", data[1]) ? spec ->rescale(spec["Calcium_40"] + spec["Calcium_41"]+ spec["Calcium_41*"]+spec["Calcium_42"]+spec["Calcium_43"] + spec["Calcium_44"]+spec["Calcium_46"]+spec["Calcium_48"], 2.7) * 1e4 : 	
+         occursin("manganese", data[1])    ? spec -> rescale(spec["Manganese_53"]+spec["Manganese_53*"]+spec["Manganese_54"]+spec["Manganese_55"], 2.7) * 1e4 :
+         occursin("cobalt", data[1])    ? spec -> rescale(spec["Cobalt_57"]+spec["Cobalt_59"], 2.7) * 1e4 :
 		 occursin("iron", data[1]) ? spec ->rescale(spec["Iron_54"]+spec["Iron_55"] + spec["Iron_56"] + spec["Iron_57"]+spec["Iron_58"]+spec["Iron_60"], 2.7) * 1e4 :
-		 occursin("nickel", data[1]) ? spec ->rescale(spec["Nickel_56"] + spec["Nickel_58"] + spec["Nickel_59"]+ spec["Nickel_60"]+ spec["Nickel_61"]+ spec["Nickel_62"]+ spec["Nickel_64"], 2.7) * 1e4 : spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4)
+		 occursin("nickel", data[1]) ? spec ->rescale(spec["Nickel_56"] + spec["Nickel_58"] + spec["Nickel_59"]+spec["Nickel_59*"]+ spec["Nickel_60"]+ spec["Nickel_61"]+ spec["Nickel_62"]+ spec["Nickel_64"], 2.7) * 1e4 : spec -> rescale(spec["Helium_3"] + spec["Helium_4"], 2.7) * 1e4)
 		 k != 1 && (label.*=",k="*string(k))
   plot_comparison(_func,spectra, label; phi=phi,phi0=phi0, data=data, datafile="primary.dat", index=-2.7,norm=k,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
 
 function plot_secondary(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0,phi0::Real = 0, data::Array{String,1}=["AMS2017lithiumrigidity(2011/05/19-2016/05/26)"],k::Real = 1)
   data=(data==["li"] ? ["AMS2017lithiumrigidity(2011/05/19-2016/05/26)"] : 
-        data==["li6"] ? ["AMS2022li6pre"] : 
-        data==["li7"] ? ["AMS2022li7pre"] : 
+        data==["li6"] ? ["AMS2025Li6rigidity(2011/05-2023/10)"] : 
+        data==["li7"] ? ["AMS2025Li7rigidity(2011/05-2023/10)"] : 
         data==["be"] ? ["AMS2017berylliumrigidity(2011/05/19-2016/05/26)"] :
-        data==["be9"] ? ["AMS2023be9pre"] :
-        data==["be10"] ? ["AMS2023be10pre"] :
-        data==["be7"] ? ["AMS2023be7pre"] :
+        data==["be9"] ? ["AMS2023Be9pre"] :
+        data==["be10"] ? ["AMS2023Be10pre"] :
+        data==["be7"] ? ["AMS2023Be7pre"] :
         data==["b"]  ? ["AMS2017boronrigidity(2011/05/19-2016/05/26)"] : 
         data==["f"]  ? ["AMS2021fluorinerigidity(2011/05-2019/10)"] : 
         data==["d"]  ? ["PAMELA-TOFdeuteron(2006/07-2007/12)"] :
         data==["p"]  ? ["AMS2023phosphorusrigiditypre"] :
         data==["sc"]  ? ["HEAO3-C2scandium(1979/10-1980/06)"] :
         data==["ti"]  ? ["HEAO3-C2titanium(1979/10-1980/06)"] :
-        data==["v"]  ? ["HEAO3-C2vanadium(1979/10-1980/06)"] : data)
+        data==["v"]  ? ["HEAO3-C2vanadium(1979/10-1980/06)"] : 
+        data==["sc"]  ? ["CALETchromium(2015/11/01-2023/10/31)"] : data)
   _func=(occursin("lithium", data[1])  ? spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 : 
-         occursin("li6", data[1])  ? spec ->rescale(spec["Lithium_6"] , 2.7) * 1e4 : 
-         occursin("li7", data[1])  ? spec ->rescale(spec["Lithium_7"] , 2.7) * 1e4 : 
+         occursin("Li6", data[1])  ? spec ->rescale(spec["Lithium_6"] , 2.7) * 1e4 : occursin("Li7", data[1])  ? spec ->rescale(spec["Lithium_7"] , 2.7) * 1e4 : 
          occursin("beryllium", data[1]) ? spec -> rescale(spec["Beryllium_7"] + spec["Beryllium_9"] + spec["Beryllium_10"], 2.7) * 1e4 :
-         occursin("be9", data[1]) ? spec -> rescale(spec["Beryllium_9"], 2.7) * 1e4 :
-         occursin("be10", data[1]) ? spec -> rescale(spec["Beryllium_10"], 2.7) * 1e4 :
-         occursin("be7", data[1]) ? spec -> rescale(spec["Beryllium_7"], 2.7) * 1e4 :
+         occursin("Be9", data[1]) ? spec -> rescale(spec["Beryllium_9"], 2.7) * 1e4 : occursin("Be10", data[1]) ? spec -> rescale(spec["Beryllium_10"], 2.7) * 1e4 : occursin("Be7", data[1]) ? spec -> rescale(spec["Beryllium_7"], 2.7) * 1e4 :
          occursin("boron", data[1])    ? spec -> rescale(spec["Boron_10"] + spec["Boron_11"], 2.7) * 1e4 : 
+         occursin("B10", data[1]) ? spec -> rescale(spec["Boron_10"], 2.7) * 1e4 : occursin("B11", data[1]) ? spec -> rescale(spec["Boron_11"], 2.7) * 1e4 :
          occursin("fluorine", data[1])    ? spec -> rescale(spec["Fluorine_19"], 2.7) * 1e4 : 
          occursin("deuteron", data[1])    ? spec -> rescale(haskey(spec,"pp_deuterons") ? spec["pp_deuterons"]+spec["Hydrogen_2"] : spec["Hydrogen_2"], 2.7) * 1e4 : 
          occursin("phosphorus", data[1])    ? spec -> rescale(spec["Phosphorus_31"], 2.7) * 1e4 :
+         occursin("chlorine", data[1])    ? spec -> rescale(spec["Chlorine_35"]+spec["Chlorine_36"]+spec["Chlorine_36*"]+spec["Chlorine_37"], 2.7) * 1e4 :
+         occursin("potassium", data[1])    ? spec -> rescale(spec["Potassium_39"]+spec["Potassium_40"]+spec["Potassium_41"], 2.7) * 1e4 :
          occursin("scandium", data[1])    ? spec -> rescale(spec["Scandium_45"], 2.7) * 1e4 :
          occursin("titanium", data[1])    ? spec -> rescale(spec["Titanium_44"]+spec["Titanium_46"]+spec["Titanium_47"]+spec["Titanium_48"]+spec["Titanium_49"]+spec["Titanium_50"], 2.7) * 1e4 :
-         occursin("vanadium", data[1])    ? spec -> rescale(spec["Vanadium_49"]+spec["Vanadium_50"]+spec["Vanadium_51"], 2.7) * 1e4 : spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 )
+         occursin("vanadium", data[1])    ? spec -> rescale(spec["Vanadium_49"]+spec["Vanadium_50"]+spec["Vanadium_51"], 2.7) * 1e4 :
+         occursin("chromium", data[1])    ? spec -> rescale(spec["Chromium_50"]+spec["Chromium_51"]+spec["Chromium_52"]+spec["Chromium_53"]+spec["Chromium_54"], 2.7) * 1e4 : spec ->rescale(spec["Lithium_6"] + spec["Lithium_7"], 2.7) * 1e4 )
           k != 1 && (label.*=",k="*string(k))
   plot_comparison(_func,spectra, label; phi=phi,phi0=phi0, data=data, datafile="secondary.dat", index=-2.7,norm=k,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
@@ -621,13 +631,13 @@ function plot_e(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} 
   plot_comparison(_func,spectra, label; phi=phi,phi0=phi0, data=data, datafile="e+e-.dat", index=index,yscale=yscale, ylabel=occursin("fraction", data[1]) ? "\$\\rm e^{+}/(e^{+}+e^{-})\\ ratio\$" : "\$\\rm E^{3}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{2}]\$")
 end
 
-function plot_he(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0,phi0::Real = 0, data::Array{String,1}=["AMS2019he4(2011/05-2017/11)"])
-  data=(data==["he4"] ? ["AMS2019he4(2011/05-2017/11)"] : 
-        data==["he3"]  ? ["AMS2019he3(2011/05-2017/11)"] :
-        data==["he3r"]  ? ["AMS2019he3rigidity(2011/05-2017/11)"] :
-        data==["he4r"]  ? ["AMS2019he4rigidity(2011/05-2017/11)"] : data)
-_func=(occursin("he4", data[1])  ? spec -> rescale(spec["Helium_4"] , 2.7) * 1e4 : 
-       occursin("he3", data[1])  ? spec -> rescale(spec["Helium_3"] , 2.7) * 1e4 : spec -> rescale(spec["Helium_4"] , 2.7) * 1e4)
+function plot_he(spectra::Array{Dict{String,Particle},1}, label::Array{String,2} = Array{String,2}(undef, (0,0)); phi::Real = 0,phi0::Real = 0, data::Array{String,1}=["AMS2019He4(2011/05-2017/11)"])
+  data=(data==["he4"] ? ["AMS2019He4(2011/05-2017/11)"] : 
+        data==["he3"]  ? ["AMS2019He3(2011/05-2017/11)"] :
+        data==["he3r"]  ? ["AMS2019He3rigidity(2011/05-2017/11)"] :
+        data==["he4r"]  ? ["AMS2019He4rigidity(2011/05-2017/11)"] : data)
+_func=(occursin("He4", data[1])  ? spec -> rescale(spec["Helium_4"] , 2.7) * 1e4 : 
+       occursin("He3", data[1])  ? spec -> rescale(spec["Helium_3"] , 2.7) * 1e4 : spec -> rescale(spec["Helium_4"] , 2.7) * 1e4)
   plot_comparison(_func,spectra, label; phi=phi,phi0=phi0, data=data, datafile="heratio.dat", index=-2.7,yscale=:log10, ylabel="\$\\rm E^{2.7}dN/dE [m^{-2}sr^{-1}s^{-1}(GeV/n)^{1.7}]\$")
 end
 
@@ -690,6 +700,8 @@ function fun_particle(spec::Dict{String,Particle},a::String)
           a=="Na" ? ["Sodium_23"] : 
           a=="Al" ? ["Aluminium_26" , "Aluminium_27"] :  
           a=="S" ? ["Sulphur_32" ,"Sulphur_33","Sulphur_34"] :
+          a=="Ti" ? ["Titanium_44","Titanium_46","Titanium_47","Titanium_48","Titanium_49","Titanium_50"] :
+          a=="Cr" ? ["Chromium_50","Chromium_51","Chromium_52","Chromium_53","Chromium_54"] :
           a=="Fe" ? ["Iron_54" ,"Iron_55", "Iron_56","Iron_57","Iron_58","Iron_60"] : 
           a=="Ni" ? ["Nickel_56","Nickel_58","Nickel_59","Nickel_60","Nickel_61","Nickel_62","Nickel_64"] : 
           a=="SubFe" ? ["Scandium_45","Titanium_44","Titanium_46","Titanium_47","Titanium_48","Titanium_49","Titanium_50","Vanadium_49","Vanadium_50","Vanadium_51"] : 
